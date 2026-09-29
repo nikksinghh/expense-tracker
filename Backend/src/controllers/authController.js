@@ -30,7 +30,7 @@ const sendTokenResponse = (user, statusCode, res) => {
         upiId: user.upiId,
         avatar: user.avatar,
         room: user.room,
-        role: user.role || (user.email.toLowerCase().includes('admin') ? 'admin' : 'user'),
+        role: user.email?.toLowerCase() === 'nikhiladmin@gmail.com' ? 'admin' : (user.role === 'admin' ? 'admin' : 'user'),
         themePreference: user.themePreference
       }
     });
@@ -41,7 +41,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @access  Public
 const register = async (req, res, next) => {
   try {
-    const { name, email, password, phone, upiId, role } = req.body;
+    const { name, email, password, phone, upiId } = req.body;
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
@@ -51,7 +51,7 @@ const register = async (req, res, next) => {
       });
     }
 
-    const assignedRole = role === 'admin' || email.toLowerCase().includes('admin') ? 'admin' : 'user';
+    const assignedRole = email.toLowerCase() === 'nikhiladmin@gmail.com' ? 'admin' : 'user';
 
     const user = await User.create({
       name,

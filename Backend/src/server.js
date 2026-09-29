@@ -8,6 +8,29 @@ const startServer = async () => {
   try {
     await connectDB();
 
+    // Auto-seed dedicated admin account if it doesn't exist
+    try {
+      const User = require('./models/User');
+      const adminEmail = 'nikhiladmin@gmail.com';
+      const existingAdmin = await User.findOne({ email: adminEmail });
+      if (!existingAdmin) {
+        await User.create({
+          name: 'Nikhil Admin',
+          email: adminEmail,
+          password: '123456',
+          role: 'admin',
+          phone: '',
+          upiId: ''
+        });
+        console.log('👑 Dedicated Admin account initialized: nikhiladmin@gmail.com / 123456');
+      } else if (existingAdmin.role !== 'admin') {
+        existingAdmin.role = 'admin';
+        await existingAdmin.save();
+      }
+    } catch (seedErr) {
+      console.log('Admin check info:', seedErr.message);
+    }
+
     const server = app.listen(PORT, () => {
       console.log(`🚀 RoomMates Backend running on port ${PORT}`);
       console.log(`🌐 API Health Check: http://localhost:${PORT}/api/health`);
