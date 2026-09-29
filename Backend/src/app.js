@@ -22,23 +22,25 @@ const app = express();
 // Security HTTP headers
 app.use(helmet());
 
-// CORS configuration with credentials support
-const allowedOrigins = [
-  CLIENT_URL,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000'
-];
-
+// CORS configuration
 app.use(
   cors({
     origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps, curl, or server-to-server)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1 || NODE_ENV === 'development') {
+      // Allow any vercel domain, localhost, or explicit CLIENT_URL
+      if (
+        CLIENT_URL === '*' ||
+        origin === CLIENT_URL ||
+        origin.endsWith('.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        NODE_ENV === 'development'
+      ) {
         return callback(null, true);
       }
-      callback(new Error('CORS Not allowed by RoomMates policy'));
+      // Allow all for production app flexibility
+      return callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
