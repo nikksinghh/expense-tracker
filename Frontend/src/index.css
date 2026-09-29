@@ -1136,10 +1136,67 @@ a:hover { color: var(--rm-blue-light); }
   gap: 16px;
 }
 
+.rm-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
 .rm-settings-layout {
   display: grid;
   grid-template-columns: 200px 1fr;
   gap: 20px;
+}
+
+/* ---------- Filter Bar & Search ---------- */
+.rm-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.rm-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.rm-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.rm-search-input {
+  width: 100%;
+  padding-left: 36px !important;
+  height: 38px;
+  border-radius: 10px;
+}
+
+.rm-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rm-select {
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  height: 38px;
 }
 
 /* ---------- Modal Backdrop & Dialog ---------- */
@@ -1190,6 +1247,10 @@ a:hover { color: var(--rm-blue-light); }
   .rm-content { padding-bottom: 85px; }
 }
 
+@media (max-width: 768px) {
+  .rm-grid-3 { grid-template-columns: 1fr !important; gap: 10px; }
+}
+
 @media (max-width: 680px) {
   .rm-topnav-month-select {
     display: none !important;
@@ -1197,6 +1258,26 @@ a:hover { color: var(--rm-blue-light); }
 }
 
 @media (max-width: 576px) {
+  .rm-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .rm-search-wrapper {
+    min-width: 100%;
+    width: 100%;
+  }
+  .rm-filter-controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+  .rm-filter-controls .rm-select {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.75rem;
+    padding: 6px 8px;
+  }
   .summary-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
   .summary-card { padding: 14px 12px !important; border-radius: 14px; }
   .summary-card .card-value { font-size: 1.15rem !important; }

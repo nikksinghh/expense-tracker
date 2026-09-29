@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   BsHouseDoorFill, BsPlusCircleFill, BsListUl,
-  BsPeopleFill, BsBarChartFill, BsWalletFill
+  BsBarChartFill, BsWalletFill, BsShieldLockFill, BsGearFill
 } from 'react-icons/bs';
+import { useAuth } from '../../contexts/AuthContext';
 import Sidebar from './Sidebar';
 import Topnav from './Topnav';
 
@@ -15,13 +16,21 @@ const mobileNavItems = [
   { to: '/settlement', icon: <BsWalletFill />, label: 'Settle' }
 ];
 
+const adminMobileNavItems = [
+  { to: '/admin', icon: <BsShieldLockFill />, label: 'Admin Portal' },
+  { to: '/settings', icon: <BsGearFill />, label: 'Settings' }
+];
+
 const Layout = ({ children }) => {
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState({
     month: now.getMonth() + 1,
     year: now.getFullYear()
   });
+
+  const activeNavItems = user?.role === 'admin' ? adminMobileNavItems : mobileNavItems;
 
   return (
     <div className="rm-layout">
@@ -42,7 +51,7 @@ const Layout = ({ children }) => {
       {/* Mobile Bottom Nav */}
       <nav className="rm-mobile-nav">
         <div className="rm-mobile-nav-inner">
-          {mobileNavItems.map(item => (
+          {activeNavItems.map(item => (
             <NavLink
               key={item.to}
               to={item.to}

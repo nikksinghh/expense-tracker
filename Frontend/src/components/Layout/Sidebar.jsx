@@ -73,29 +73,39 @@ const Sidebar = ({ open, onClose }) => {
 
         {/* Nav */}
         <nav className="rm-sidebar-nav">
-          {user?.role === 'admin' && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) => `rm-nav-item${isActive ? ' active' : ''}`}
-              onClick={onClose}
-              style={{ background: 'rgba(29, 114, 254, 0.1)', color: 'var(--rm-blue)', fontWeight: 700, marginBottom: 8 }}
-            >
-              <span className="nav-icon"><BsShieldLockFill /></span>
-              Admin Portal
-            </NavLink>
+          {user?.role === 'admin' ? (
+            <>
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => `rm-nav-item${isActive ? ' active' : ''}`}
+                onClick={onClose}
+                style={{ background: 'rgba(29, 114, 254, 0.1)', color: 'var(--rm-blue)', fontWeight: 700 }}
+              >
+                <span className="nav-icon"><BsShieldLockFill /></span>
+                Admin Control Center
+              </NavLink>
+              <NavLink
+                to="/settings"
+                className={({ isActive }) => `rm-nav-item${isActive ? ' active' : ''}`}
+                onClick={onClose}
+              >
+                <span className="nav-icon"><BsGearFill /></span>
+                Settings
+              </NavLink>
+            </>
+          ) : (
+            navItems.map(item => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => `rm-nav-item${isActive ? ' active' : ''}`}
+                onClick={onClose}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                {item.label}
+              </NavLink>
+            ))
           )}
-
-          {navItems.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `rm-nav-item${isActive ? ' active' : ''}`}
-              onClick={onClose}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
 
           <hr style={{ margin: '8px 0', borderColor: 'var(--divider)' }} />
 

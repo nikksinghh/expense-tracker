@@ -95,20 +95,22 @@ const Expenses = () => {
             />
           </div>
 
-          <select className="rm-select" style={{ width: 'auto' }} value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1); }}>
-            <option value="all">All Types</option>
-            <option value="shared">Shared</option>
-            <option value="personal">Personal</option>
-          </select>
+          <div className="rm-filter-controls">
+            <select className="rm-select" value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1); }}>
+              <option value="all">All Types</option>
+              <option value="shared">Shared</option>
+              <option value="personal">Personal</option>
+            </select>
 
-          <select className="rm-select" style={{ width: 'auto' }} value={filterCat} onChange={e => { setFilterCat(e.target.value); setPage(1); }}>
-            <option value="all">All Categories</option>
-            {CATEGORIES.map(c => <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>)}
-          </select>
+            <select className="rm-select" value={filterCat} onChange={e => { setFilterCat(e.target.value); setPage(1); }}>
+              <option value="all">All Categories</option>
+              {CATEGORIES.map(c => <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>)}
+            </select>
 
-          <button className="rm-icon-btn" onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} title="Sort by date">
-            <BsFilter size={14} />
-          </button>
+            <button className="rm-icon-btn" onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} title="Sort by date">
+              <BsFilter size={14} />
+            </button>
+          </div>
         </div>
       </div>
 

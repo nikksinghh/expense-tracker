@@ -135,7 +135,7 @@ const Reports = ({ selectedMonth }) => {
       {activeTab === 'overview' && (
         <>
           {/* Summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 16 }}>
+          <div className="rm-grid-3" style={{ marginBottom: 16 }}>
             {[
               { label: 'Total Spent', value: formatCurrency(stats?.totalAmount || 0), color: 'var(--rm-blue)', icon: '💰' },
               { label: 'Your Share', value: formatCurrency(stats?.yourShare || 0), color: 'var(--rm-blue)', icon: '👤' },
@@ -150,7 +150,7 @@ const Reports = ({ selectedMonth }) => {
           </div>
 
           {/* Charts row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="rm-grid-1-1">
             <div className="rm-card">
               <h5 style={{ fontWeight: 700, marginBottom: 12 }}>Category Distribution</h5>
               <div style={{ height: 240 }}>

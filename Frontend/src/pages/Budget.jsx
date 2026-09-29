@@ -177,7 +177,7 @@ const Budget = ({ selectedMonth }) => {
               <span>{formatCurrency(limit)}</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+            <div className="rm-grid-3">
               {[
                 { label: 'Remaining', value: formatCurrency(remaining), color: remaining === 0 ? 'var(--rm-red)' : 'var(--rm-green)' },
                 { label: 'Daily Budget Left', value: remaining > 0 ? formatCurrency(Math.round(remaining / Math.max(new Date(year, month, 0).getDate() - new Date().getDate(), 1))) : '₹0', color: 'var(--rm-blue)' },
