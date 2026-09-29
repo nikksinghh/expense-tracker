@@ -216,9 +216,67 @@ const leaveRoom = async (req, res, next) => {
   }
 };
 
+// @desc    Update room settings (Admin)
+// @route   PUT /api/rooms/update
+// @access  Private
+const updateRoom = async (req, res, next) => {
+  try {
+    if (!req.user.room) {
+      return res.status(400).json({ success: false, message: 'You are not part of any room.' });
+    }
+
+    const { name, currency, symbol } = req.body;
+    const room = await Room.findById(req.user.room);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found.' });
+    }
+
+    if (name && name.trim()) room.name = name.trim();
+    if (currency) room.currency = currency;
+    if (symbol) room.symbol = symbol;
+
+    await room.save();
+    await room.populate('members', 'name email phone upiId avatar createdAt');
+
+    res.status(200).json({
+      success: true,
+      message: 'Room details updated successfully!',
+      room
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset/Clear all expenses for room (Admin)
+// @route   DELETE /api/rooms/reset-expenses
+// @access  Private
+const resetRoomExpenses = async (req, res, next) => {
+  try {
+    if (!req.user.room) {
+      return res.status(400).json({ success: false, message: 'You are not part of any room.' });
+    }
+
+    const Expense = require('../models/Expense');
+    const Settlement = require('../models/Settlement');
+
+    await Expense.deleteMany({ room: req.user.room });
+    await Settlement.deleteMany({ room: req.user.room });
+
+    res.status(200).json({
+      success: true,
+      message: 'All expenses and settlement records for this room have been successfully cleared.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createRoom,
   joinRoom,
   getCurrentRoom,
-  leaveRoom
+  leaveRoom,
+  updateRoom,
+  resetRoomExpenses
 };

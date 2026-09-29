@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   BsHouseDoorFill, BsPlusCircleFill, BsListUl, BsPeopleFill,
   BsBarChartFill, BsWalletFill, BsArrowLeftRight, BsGearFill,
-  BsHouseFill, BsBoxArrowRight
+  BsHouseFill, BsBoxArrowRight, BsShieldLockFill
 } from 'react-icons/bs';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/reports', icon: <BsBarChartFill />, label: 'Reports' },
   { to: '/budget', icon: <BsWalletFill />, label: 'Budget' },
   { to: '/settlement', icon: <BsArrowLeftRight />, label: 'Settlement' },
+  { to: '/admin', icon: <BsShieldLockFill />, label: 'Admin Panel' },
   { to: '/settings', icon: <BsGearFill />, label: 'Settings' }
 ];
 

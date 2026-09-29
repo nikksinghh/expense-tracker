@@ -17,6 +17,7 @@ import Reports from './pages/Reports';
 import Budget from './pages/Budget';
 import Settlement from './pages/Settlement';
 import Settings from './pages/Settings';
+import Admin from './pages/Admin';
 
 const App = () => (
   <ThemeProvider>
@@ -62,6 +63,7 @@ const App = () => (
 
               <Route path="/settlement" element={<Layout><Settlement /></Layout>} />
               <Route path="/settings" element={<Layout><Settings /></Layout>} />
+              <Route path="/admin" element={<Layout><Admin /></Layout>} />
             </Route>
 
             {/* Fallback */}

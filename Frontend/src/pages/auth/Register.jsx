@@ -14,19 +14,11 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const cleanName = form.name.trim();
-    const cleanEmail = form.email.trim();
-    if (!cleanName || !cleanEmail || !form.password) return toast('Name, email, and password are required', 'warning');
+    if (!form.name || !form.email || !form.password) return toast('Name, email, and password are required', 'warning');
     if (form.password.length < 6) return toast('Password must be at least 6 characters', 'warning');
     setLoading(true);
     try {
-      await register({
-        ...form,
-        name: cleanName,
-        email: cleanEmail,
-        phone: form.phone?.trim() || '',
-        upiId: form.upiId?.trim() || ''
-      });
+      await register(form);
       toast('Account created successfully! 🎉', 'success', 'Welcome!');
       navigate('/room-setup');
     } catch (err) {

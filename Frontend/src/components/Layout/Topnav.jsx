@@ -17,13 +17,14 @@ const PAGE_TITLES = {
   '/reports': { title: 'Reports', sub: 'Visual breakdown of your spending' },
   '/budget': { title: 'Budget', sub: 'Set and track your monthly budget' },
   '/settlement': { title: 'Settlement', sub: 'Settle balances with your roommate' },
+  '/admin': { title: 'Admin Panel', sub: 'Control center for room and data' },
   '/settings': { title: 'Settings', sub: 'Account and room preferences' }
 };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const Topnav = ({ onMenuClick, selectedMonth, onMonthChange }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, room } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const toast = useToast();
   const navigate = useNavigate();
@@ -85,13 +86,13 @@ const Topnav = ({ onMenuClick, selectedMonth, onMonthChange }) => {
 
   return (
     <header className="rm-topnav">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button className="rm-icon-btn" onClick={onMenuClick} style={{ display: 'none' }} id="sidebar-toggle">
-          <BsList />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <button className="rm-icon-btn rm-menu-btn" onClick={onMenuClick} id="sidebar-toggle" title="Open Menu">
+          <BsList size={18} />
         </button>
         <div className="rm-topnav-left">
           <h4>{pageInfo.title}</h4>
-          {pageInfo.sub && <p>{pageInfo.sub}</p>}
+          {pageInfo.sub && <p className="rm-topnav-sub">{pageInfo.sub}</p>}
         </div>
       </div>
 
@@ -167,12 +168,17 @@ const Topnav = ({ onMenuClick, selectedMonth, onMonthChange }) => {
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--divider)' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{user?.name}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user?.email}</div>
+                {room && (
+                  <div style={{ marginTop: 4, fontSize: '0.7rem', color: 'var(--rm-blue)', fontWeight: 600 }}>
+                    🏠 {room.name} ({room.code})
+                  </div>
+                )}
               </div>
-              <button className="rm-dropdown-item" onClick={() => { navigate('/settings'); setShowProfile(false); }}>
-                <BsPersonFill /> My Profile
+              <button className="rm-dropdown-item" onClick={() => { navigate('/admin'); setShowProfile(false); }}>
+                <BsGearFill /> Admin Panel
               </button>
               <button className="rm-dropdown-item" onClick={() => { navigate('/settings'); setShowProfile(false); }}>
-                <BsGearFill /> Settings
+                <BsPersonFill /> Settings & Profile
               </button>
               <button className="rm-dropdown-item danger" onClick={handleLogout}>
                 <BsBoxArrowRight /> Logout

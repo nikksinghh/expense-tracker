@@ -114,7 +114,8 @@ const Expenses = () => {
 
       {/* Table */}
       <div className="rm-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <table className="rm-table">
+        <div style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+          <table className="rm-table" style={{ minWidth: 620 }}>
           <thead>
             <tr>
               <th>Expense</th>
@@ -208,6 +209,7 @@ const Expenses = () => {
             )}
           </tbody>
         </table>
+        </div>
 
         {/* Pagination */}
         {totalPages > 1 && (

@@ -4,7 +4,9 @@ const {
   createRoom,
   joinRoom,
   getCurrentRoom,
-  leaveRoom
+  leaveRoom,
+  updateRoom,
+  resetRoomExpenses
 } = require('../controllers/roomController');
 const { protect } = require('../middleware/auth');
 const validate = require('../middleware/validate');
@@ -37,6 +39,8 @@ router.post(
 );
 
 router.get('/current', getCurrentRoom);
+router.put('/update', updateRoom);
+router.delete('/reset-expenses', resetRoomExpenses);
 router.post('/leave', leaveRoom);
 
 module.exports = router;

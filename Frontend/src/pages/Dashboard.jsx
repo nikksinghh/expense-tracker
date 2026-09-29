@@ -86,7 +86,9 @@ const Dashboard = ({ selectedMonth }) => {
   const totalSpent = stats?.totalAmount || 0;
   const yourShare = stats?.yourShare || 0;
   const roommateShare = stats?.roommateShare || 0;
-  const budgetPct = budget ? Math.min(Math.round((budget.totalSpending / budget.monthlyLimit) * 100), 100) : 0;
+  const budgetPct = (budget && budget.monthlyLimit > 0)
+    ? Math.min(Math.round(((budget.totalSpending || 0) / budget.monthlyLimit) * 100), 100)
+    : 0;
 
   // Bar chart data — monthly trend
   const barData = {
@@ -147,17 +149,70 @@ const Dashboard = ({ selectedMonth }) => {
   };
 
   const settleCalc = settlement?.calculation;
+  const otherRoommate = room?.members?.find(m => m._id !== user?._id);
 
   return (
     <div>
-      {/* Greeting */}
-      <div style={{ marginBottom: 20 }}>
-        <h3 style={{ fontWeight: 800, fontSize: '1.4rem', margin: 0 }}>
-          {getGreeting()}, {user?.name?.split(' ')[0]}! 👋
-        </h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.83rem', margin: '4px 0 0' }}>
-          {MONTHS[month - 1]} {year} • {room?.name}
-        </p>
+      {/* Greeting & Room Status Banner */}
+      <div className="rm-card" style={{
+        padding: '16px 20px',
+        marginBottom: 16,
+        borderRadius: 16,
+        background: 'linear-gradient(135deg, rgba(29, 114, 254, 0.08) 0%, rgba(29, 114, 254, 0.02) 100%)',
+        border: '1px solid var(--border-card)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h3 style={{ fontWeight: 800, fontSize: '1.25rem', margin: 0 }}>
+              {getGreeting()}, {user?.name?.split(' ')[0]}! 👋
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '2px 0 0' }}>
+              {MONTHS[month - 1]} {year} • <strong style={{ color: 'var(--rm-blue)' }}>{room?.name || 'My Room'}</strong>
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              padding: '6px 12px',
+              borderRadius: 10,
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}>
+              <span style={{ color: 'var(--text-muted)' }}>Room Code:</span>
+              <strong style={{ color: 'var(--rm-blue)', letterSpacing: '0.5px' }}>{room?.code}</strong>
+            </div>
+
+            {otherRoommate ? (
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                padding: '6px 12px',
+                borderRadius: 10,
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--rm-green)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>👥 Roommate: {otherRoommate.name?.split(' ')[0]}</span>
+              </div>
+            ) : (
+              <button
+                className="btn btn-sm btn-outline-primary"
+                onClick={() => navigate('/members')}
+                style={{ fontSize: '0.72rem', padding: '5px 10px', borderRadius: 10 }}
+              >
+                + Invite Roommate
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -194,7 +249,7 @@ const Dashboard = ({ selectedMonth }) => {
       </div>
 
       {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
+      <div className="rm-grid-2-1" style={{ marginBottom: 16 }}>
         {/* Bar Chart */}
         <div className="rm-card">
           <div className="section-header">
@@ -230,7 +285,7 @@ const Dashboard = ({ selectedMonth }) => {
       </div>
 
       {/* Bottom Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+      <div className="rm-grid-2-1">
         {/* Recent Expenses */}
         <div className="rm-card">
           <div className="section-header">

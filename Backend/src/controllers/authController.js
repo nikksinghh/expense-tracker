@@ -41,9 +41,8 @@ const sendTokenResponse = (user, statusCode, res) => {
 const register = async (req, res, next) => {
   try {
     const { name, email, password, phone, upiId } = req.body;
-    const cleanEmail = email ? email.trim().toLowerCase() : '';
 
-    const existingUser = await User.findOne({ email: cleanEmail });
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -52,11 +51,11 @@ const register = async (req, res, next) => {
     }
 
     const user = await User.create({
-      name: name?.trim(),
-      email: cleanEmail,
+      name,
+      email: email.toLowerCase(),
       password,
-      phone: phone?.trim() || '',
-      upiId: upiId?.trim() || ''
+      phone: phone || '',
+      upiId: upiId || ''
     });
 
     sendTokenResponse(user, 201, res);
@@ -79,8 +78,7 @@ const login = async (req, res, next) => {
       });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: cleanEmail }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,

@@ -41,9 +41,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const res = await api.post('/api/auth/login', { email, password });
-    if (res.data.token) {
-      localStorage.setItem('rm_token', res.data.token);
-    }
     setUser(res.data.user);
     // Always fetch room after login
     await fetchRoom();
@@ -52,23 +49,14 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const res = await api.post('/api/auth/register', data);
-    if (res.data.token) {
-      localStorage.setItem('rm_token', res.data.token);
-    }
     setUser(res.data.user);
     return res.data;
   };
 
   const logout = async () => {
-    try {
-      await api.post('/api/auth/logout');
-    } catch {
-      // Ignore logout errors
-    } finally {
-      localStorage.removeItem('rm_token');
-      setUser(null);
-      setRoom(null);
-    }
+    await api.post('/api/auth/logout');
+    setUser(null);
+    setRoom(null);
   };
 
   const updateUser = (u) => setUser(u);
