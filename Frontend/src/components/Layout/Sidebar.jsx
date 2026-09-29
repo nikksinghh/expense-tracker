@@ -73,6 +73,18 @@ const Sidebar = ({ open, onClose }) => {
 
         {/* Nav */}
         <nav className="rm-sidebar-nav">
+          {user?.role === 'admin' && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) => `rm-nav-item${isActive ? ' active' : ''}`}
+              onClick={onClose}
+              style={{ background: 'rgba(29, 114, 254, 0.1)', color: 'var(--rm-blue)', fontWeight: 700, marginBottom: 8 }}
+            >
+              <span className="nav-icon"><BsShieldLockFill /></span>
+              Admin Portal
+            </NavLink>
+          )}
+
           {navItems.map(item => (
             <NavLink
               key={item.to}

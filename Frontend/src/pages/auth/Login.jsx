@@ -17,8 +17,12 @@ const Login = () => {
     if (!form.email || !form.password) return toast('Please fill all fields', 'warning');
     setLoading(true);
     try {
-      await login(form.email, form.password);
-      navigate('/dashboard');
+      const res = await login(form.email, form.password);
+      if (res.user?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       toast(err.response?.data?.message || 'Login failed. Check credentials.', 'error', 'Login Failed');
     } finally {

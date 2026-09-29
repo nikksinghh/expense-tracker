@@ -1,331 +1,395 @@
 import { useState, useEffect } from 'react';
 import {
-  BsShieldLockFill, BsHouseFill, BsPeopleFill, BsTrashFill,
-  BsClipboardCheck, BsClipboard, BsPencilFill, BsArrowRepeat,
-  BsDownload, BsExclamationTriangleFill, BsCheckCircleFill
+  BsShieldLockFill, BsPeopleFill, BsHouseFill, BsCashStack,
+  BsTrashFill, BsDownload, BsSearch, BsArrowRepeat, BsCheckCircleFill
 } from 'react-icons/bs';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../api/axios';
-import { formatCurrency } from '../utils/helpers';
+import { formatCurrency, formatDate } from '../utils/helpers';
 
 const Admin = () => {
-  const { user, room, refreshRoom } = useAuth();
+  const { user } = useAuth();
   const toast = useToast();
 
+  const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalExpenses: 0, totalAmount: 0 });
-  const [roomName, setRoomName] = useState(room?.name || '');
-  const [copied, setCopied] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [resetting, setResetting] = useState(false);
+  const [overview, setOverview] = useState({
+    stats: { totalUsers: 0, totalRooms: 0, totalExpenses: 0, totalVolume: 0 },
+    users: [],
+    rooms: [],
+    recentExpenses: []
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
 
-  useEffect(() => {
-    if (room) setRoomName(room.name);
-  }, [room]);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get('/api/expenses/summary');
-        if (res.data?.stats) {
-          setStats(res.data.stats);
-        }
-      } catch {
-        /* silent */
-      } finally {
-        setLoading(false);
+  const fetchOverview = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/api/admin/overview');
+      if (res.data?.success) {
+        setOverview(res.data);
       }
-    };
-    fetchStats();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Failed to load admin data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOverview();
   }, []);
 
-  const handleCopyCode = () => {
-    if (!room?.code) return;
-    navigator.clipboard.writeText(room.code);
-    setCopied(true);
-    toast('Room invite code copied!', 'success');
-    setTimeout(() => setCopied(false), 2500);
-  };
-
-  const handleUpdateRoomName = async (e) => {
-    e.preventDefault();
-    if (!roomName.trim()) {
-      toast('Please enter a valid room name', 'error');
-      return;
-    }
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Are you sure you want to delete user "${userName}"?`)) return;
     try {
-      setIsUpdating(true);
-      await api.put('/api/rooms/update', { name: roomName.trim() });
-      await refreshRoom();
-      toast('Room name updated successfully!', 'success');
+      setDeletingId(userId);
+      await api.delete(`/api/admin/users/${userId}`);
+      toast(`User ${userName} deleted`, 'success');
+      await fetchOverview();
     } catch (err) {
-      toast(err.response?.data?.message || 'Failed to update room', 'error');
+      toast(err.response?.data?.message || 'Failed to delete user', 'error');
     } finally {
-      setIsUpdating(false);
+      setDeletingId(null);
     }
   };
 
-  const handleResetExpenses = async () => {
+  const handleDeleteRoom = async (roomId, roomName) => {
+    if (!window.confirm(`Are you sure you want to delete room "${roomName}" and all its expenses?`)) return;
     try {
-      setResetting(true);
-      const res = await api.delete('/api/rooms/reset-expenses');
-      toast(res.data?.message || 'All expenses reset successfully!', 'success');
-      setShowResetModal(false);
-      setStats({ totalExpenses: 0, totalAmount: 0 });
+      setDeletingId(roomId);
+      await api.delete(`/api/admin/rooms/${roomId}`);
+      toast(`Room ${roomName} deleted`, 'success');
+      await fetchOverview();
     } catch (err) {
-      toast(err.response?.data?.message || 'Failed to reset expenses', 'error');
+      toast(err.response?.data?.message || 'Failed to delete room', 'error');
     } finally {
-      setResetting(false);
+      setDeletingId(null);
     }
   };
 
-  const handleExportData = async () => {
-    try {
-      const res = await api.get('/api/expenses?limit=1000');
-      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(res.data, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute('href', dataStr);
-      downloadAnchor.setAttribute('download', `roommates_expenses_${Date.now()}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      toast('Data exported successfully!', 'success');
-    } catch {
-      toast('Failed to export data', 'error');
-    }
+  const handleExportAll = () => {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(overview, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `platform_database_export_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    toast('Platform backup exported successfully!', 'success');
   };
+
+  const filteredUsers = overview.users?.filter(u =>
+    u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.room?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  const filteredRooms = overview.rooms?.filter(r =>
+    r.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.code?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      {/* Header Banner */}
+    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      {/* Admin Header Banner */}
       <div className="rm-card" style={{
-        background: 'linear-gradient(135deg, #1D72FE 0%, #0c4dc7 100%)',
+        background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)',
         color: 'white',
         padding: '24px',
         marginBottom: 20,
-        borderRadius: 20
+        borderRadius: 20,
+        border: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <BsShieldLockFill size={22} />
-              <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.9, fontWeight: 700 }}>
-                Control Center
+              <span style={{
+                background: '#EF4444',
+                color: 'white',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                padding: '3px 8px',
+                borderRadius: 6,
+                letterSpacing: '0.5px'
+              }}>
+                MASTER ADMIN
               </span>
+              <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>Superuser Access</span>
             </div>
-            <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.6rem' }}>Admin & Room Manager</h2>
-            <p style={{ margin: '6px 0 0', opacity: 0.85, fontSize: '0.85rem' }}>
-              Manage your room settings, roommates, and data from one central dashboard.
+            <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.6rem' }}>Admin Control Center</h2>
+            <p style={{ margin: '6px 0 0', opacity: 0.75, fontSize: '0.85rem' }}>
+              Welcome {user?.name}! Manage all users, rooms, and platform transactions.
             </p>
           </div>
 
-          <div style={{
-            background: 'rgba(255,255,255,0.15)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: 14,
-            padding: '12px 18px',
-            textAlign: 'right'
-          }}>
-            <div style={{ fontSize: '0.72rem', opacity: 0.8 }}>Current Room</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{room?.name || 'No Room'}</div>
-            <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>Code: <strong>{room?.code}</strong></div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              className="btn btn-outline-light"
+              onClick={fetchOverview}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}
+            >
+              <BsArrowRepeat /> Refresh
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleExportAll}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}
+            >
+              <BsDownload /> Export Backup
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Global Stats */}
       <div className="summary-cards" style={{ marginBottom: 20 }}>
         <div className="summary-card total">
-          <div className="card-icon"><BsHouseFill /></div>
-          <div className="card-label">Room Capacity</div>
-          <div className="card-value">{room?.members?.length || 1} / 2</div>
-          <div className="card-sub">{room?.members?.length === 2 ? 'Room is Full (2/2)' : '1 Spot Available'}</div>
+          <div className="card-icon"><BsPeopleFill /></div>
+          <div className="card-label">Total Users</div>
+          <div className="card-value">{loading ? '...' : (overview.stats?.totalUsers || 0)}</div>
+          <div className="card-sub">Registered accounts</div>
         </div>
 
         <div className="summary-card yours">
-          <div className="card-icon"><BsPeopleFill /></div>
-          <div className="card-label">Total Room Expenses</div>
-          <div className="card-value">{loading ? '...' : (stats.totalExpenses || 0)}</div>
-          <div className="card-sub">Recorded till date</div>
+          <div className="card-icon"><BsHouseFill /></div>
+          <div className="card-label">Total Rooms</div>
+          <div className="card-value">{loading ? '...' : (overview.stats?.totalRooms || 0)}</div>
+          <div className="card-sub">Active households</div>
         </div>
 
         <div className="summary-card roommate">
+          <div className="card-icon"><BsCashStack /></div>
+          <div className="card-label">Total Transactions</div>
+          <div className="card-value">{loading ? '...' : (overview.stats?.totalExpenses || 0)}</div>
+          <div className="card-sub">Expenses created</div>
+        </div>
+
+        <div className="summary-card budget">
           <div className="card-icon"><BsCheckCircleFill /></div>
-          <div className="card-label">Total Volume Tracked</div>
-          <div className="card-value">{loading ? '...' : formatCurrency(stats.totalAmount || 0)}</div>
-          <div className="card-sub">Combined spending</div>
+          <div className="card-label">Total Volume</div>
+          <div className="card-value">{loading ? '...' : formatCurrency(overview.stats?.totalVolume || 0)}</div>
+          <div className="card-sub">System-wide spending</div>
         </div>
       </div>
 
-      {/* Main Settings Grid */}
-      <div className="rm-grid-2-1" style={{ marginBottom: 20 }}>
-        {/* Room Info & Edit */}
-        <div className="rm-card">
-          <div className="section-header">
-            <h5><BsPencilFill style={{ marginRight: 8, color: 'var(--rm-blue)' }} /> Room Information</h5>
-          </div>
-
-          <form onSubmit={handleUpdateRoomName}>
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label">Room Name</label>
-              <input
-                type="text"
-                className="form-control"
-                value={roomName}
-                onChange={e => setRoomName(e.target.value)}
-                placeholder="e.g. Flat 302, Green Glen"
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label className="form-label">Invite Code (Share with Roommate)</label>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={room?.code || ''}
-                  readOnly
-                  style={{ fontWeight: 700, letterSpacing: '1px', background: 'var(--bg-input)' }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline-primary"
-                  onClick={handleCopyCode}
-                  style={{ minWidth: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  {copied ? <><BsClipboardCheck /> Copied</> : <><BsClipboard /> Copy</>}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isUpdating}
-              style={{ width: '100%' }}
-            >
-              {isUpdating ? 'Saving...' : 'Save Room Details'}
-            </button>
-          </form>
-        </div>
-
-        {/* Roommates Card */}
-        <div className="rm-card">
-          <div className="section-header">
-            <h5><BsPeopleFill style={{ marginRight: 8, color: 'var(--rm-blue)' }} /> Room Members</h5>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {room?.members?.map((m, idx) => (
-              <div
-                key={m._id || idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '10px 12px',
-                  background: 'var(--bg-input)',
-                  borderRadius: 12,
-                  border: '1px solid var(--border-color)'
-                }}
-              >
-                <div className="rm-avatar" style={{ width: 38, height: 38, fontSize: '0.9rem' }}>
-                  {m.name?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                    {m.name} {m._id === user?._id && <span style={{ fontSize: '0.68rem', color: 'var(--rm-blue)', fontWeight: 600 }}>(You)</span>}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {m.email}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {(!room?.members || room.members.length < 2) && (
-              <div style={{
-                padding: '14px',
-                border: '1.5px dashed var(--rm-blue)',
-                borderRadius: 12,
-                textAlign: 'center',
-                background: 'var(--rm-blue-pale)'
-              }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--rm-blue)', marginBottom: 4 }}>
-                  Invite Roommate
-                </div>
-                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Share code <strong>{room?.code}</strong> with your second roommate to join.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Main Tabs */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, borderBottom: '1px solid var(--divider)', paddingBottom: 10 }}>
+        <button
+          className={`btn ${activeTab === 'users' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          onClick={() => setActiveTab('users')}
+          style={{ borderRadius: 10, fontSize: '0.82rem', fontWeight: 600 }}
+        >
+          👥 Users ({overview.users?.length || 0})
+        </button>
+        <button
+          className={`btn ${activeTab === 'rooms' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          onClick={() => setActiveTab('rooms')}
+          style={{ borderRadius: 10, fontSize: '0.82rem', fontWeight: 600 }}
+        >
+          🏠 Rooms ({overview.rooms?.length || 0})
+        </button>
+        <button
+          className={`btn ${activeTab === 'expenses' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          onClick={() => setActiveTab('expenses')}
+          style={{ borderRadius: 10, fontSize: '0.82rem', fontWeight: 600 }}
+        >
+          🧾 Recent Expenses ({overview.recentExpenses?.length || 0})
+        </button>
       </div>
 
-      {/* Danger Zone & Data Operations */}
-      <div className="rm-card" style={{ borderColor: 'rgba(239, 68, 68, 0.25)' }}>
-        <div className="section-header">
-          <h5 style={{ color: 'var(--rm-red)' }}>
-            <BsExclamationTriangleFill style={{ marginRight: 8 }} /> Data Management & Reset
-          </h5>
-        </div>
-
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-          Perform maintenance actions on your room data. Use with caution.
-        </p>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={handleExportData}
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-          >
-            <BsDownload /> Export Expenses (JSON)
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-outline-danger"
-            onClick={() => setShowResetModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-          >
-            <BsTrashFill /> Clear All Room Expenses
-          </button>
-        </div>
+      {/* Search Bar */}
+      <div style={{ marginBottom: 16, position: 'relative' }}>
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Search by name, email, room, or code..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{ paddingLeft: 36, height: 42 }}
+        />
+        <BsSearch style={{ position: 'absolute', left: 14, top: 14, color: 'var(--text-muted)' }} />
       </div>
 
-      {/* Reset Confirmation Modal */}
-      {showResetModal && (
-        <div className="rm-modal-backdrop" onClick={() => setShowResetModal(false)}>
-          <div className="rm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <div className="rm-modal-header" style={{ borderBottom: '1px solid var(--divider)' }}>
-              <h5 style={{ color: 'var(--rm-red)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <BsExclamationTriangleFill /> Confirm Reset
-              </h5>
-              <button className="btn-close" onClick={() => setShowResetModal(false)}></button>
-            </div>
-            <div className="rm-modal-body" style={{ padding: '20px 0' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 10 }}>
-                Are you sure you want to <strong>delete all expenses and settlement records</strong> for this room?
-              </p>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                This action cannot be undone. All expense tracking for {room?.name} will be reset to ₹0.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={() => setShowResetModal(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-danger" onClick={handleResetExpenses} disabled={resetting}>
-                {resetting ? 'Resetting...' : 'Yes, Delete All Expenses'}
-              </button>
-            </div>
+      {/* Tab: Users */}
+      {activeTab === 'users' && (
+        <div className="rm-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="rm-table" style={{ minWidth: 650 }}>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Room</th>
+                  <th>Joined Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      No users found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map(u => (
+                    <tr key={u._id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div className="rm-avatar" style={{ width: 32, height: 32, fontSize: '0.8rem' }}>
+                            {u.name?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{u.name}</div>
+                            {u.phone && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{u.phone}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ fontSize: '0.8rem' }}>{u.email}</td>
+                      <td>
+                        <span style={{
+                          background: u.role === 'admin' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(29, 114, 254, 0.1)',
+                          color: u.role === 'admin' ? 'var(--rm-red)' : 'var(--rm-blue)',
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase'
+                        }}>
+                          {u.role || 'user'}
+                        </span>
+                      </td>
+                      <td>
+                        {u.room ? (
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--rm-blue)' }}>
+                            🏠 {u.room.name} ({u.room.code})
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No Room</span>
+                        )}
+                      </td>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        {formatDate(u.createdAt)}
+                      </td>
+                      <td>
+                        {u._id !== user?._id && (
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDeleteUser(u._id, u.name)}
+                            disabled={deletingId === u._id}
+                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                          >
+                            <BsTrashFill /> Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Rooms */}
+      {activeTab === 'rooms' && (
+        <div className="rm-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="rm-table" style={{ minWidth: 650 }}>
+              <thead>
+                <tr>
+                  <th>Room Name</th>
+                  <th>Invite Code</th>
+                  <th>Members</th>
+                  <th>Created By</th>
+                  <th>Created Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRooms.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      No rooms found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredRooms.map(r => (
+                    <tr key={r._id}>
+                      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>🏠 {r.name}</td>
+                      <td>
+                        <span style={{ background: 'var(--rm-blue-pale)', color: 'var(--rm-blue)', padding: '4px 8px', borderRadius: 6, fontWeight: 800, fontSize: '0.78rem', letterSpacing: '0.5px' }}>
+                          {r.code}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.8rem' }}>
+                        {r.members?.length || 0}/2 members
+                      </td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {r.createdBy?.name || 'Unknown'}
+                      </td>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        {formatDate(r.createdAt)}
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDeleteRoom(r._id, r.name)}
+                          disabled={deletingId === r._id}
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        >
+                          <BsTrashFill /> Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Recent Expenses */}
+      {activeTab === 'expenses' && (
+        <div className="rm-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="rm-table" style={{ minWidth: 650 }}>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Paid By</th>
+                  <th>Room</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {overview.recentExpenses?.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      No expenses recorded yet
+                    </td>
+                  </tr>
+                ) : (
+                  overview.recentExpenses?.map(exp => (
+                    <tr key={exp._id}>
+                      <td style={{ fontWeight: 600 }}>{exp.title}</td>
+                      <td style={{ fontSize: '0.78rem' }}>{exp.category}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--rm-red)' }}>{formatCurrency(exp.amount)}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{exp.paidBy?.name || 'User'}</td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--rm-blue)' }}>{exp.room?.name || 'Room'}</td>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{formatDate(exp.createdAt)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
