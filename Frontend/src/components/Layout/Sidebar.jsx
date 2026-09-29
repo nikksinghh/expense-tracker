@@ -15,7 +15,6 @@ const navItems = [
   { to: '/reports', icon: <BsBarChartFill />, label: 'Reports' },
   { to: '/budget', icon: <BsWalletFill />, label: 'Budget' },
   { to: '/settlement', icon: <BsArrowLeftRight />, label: 'Settlement' },
-  { to: '/admin', icon: <BsShieldLockFill />, label: 'Admin Panel' },
   { to: '/settings', icon: <BsGearFill />, label: 'Settings' }
 ];
 

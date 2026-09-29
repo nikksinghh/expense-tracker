@@ -80,7 +80,7 @@ const Settings = () => {
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 20, maxWidth: 800 }}>
+    <div className="rm-settings-layout" style={{ maxWidth: 800 }}>
       {/* Side Nav */}
       <div className="rm-card" style={{ padding: '10px 6px', alignSelf: 'start' }}>
         {sections.map(s => (

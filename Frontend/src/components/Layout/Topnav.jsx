@@ -174,11 +174,8 @@ const Topnav = ({ onMenuClick, selectedMonth, onMonthChange }) => {
                   </div>
                 )}
               </div>
-              <button className="rm-dropdown-item" onClick={() => { navigate('/admin'); setShowProfile(false); }}>
-                <BsGearFill /> Admin Panel
-              </button>
               <button className="rm-dropdown-item" onClick={() => { navigate('/settings'); setShowProfile(false); }}>
-                <BsPersonFill /> Settings & Profile
+                <BsPersonFill /> Profile & Room Settings
               </button>
               <button className="rm-dropdown-item danger" onClick={handleLogout}>
                 <BsBoxArrowRight /> Logout
