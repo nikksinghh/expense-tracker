@@ -154,24 +154,24 @@ const Dashboard = ({ selectedMonth }) => {
   return (
     <div>
       {/* Greeting & Room Status Banner */}
-      <div className="rm-card" style={{
-        padding: '16px 20px',
+      <div className="rm-card rm-greeting-banner" style={{
+        padding: '16px 18px',
         marginBottom: 16,
-        borderRadius: 16,
+        borderRadius: 18,
         background: 'linear-gradient(135deg, rgba(29, 114, 254, 0.08) 0%, rgba(29, 114, 254, 0.02) 100%)',
         border: '1px solid var(--border-card)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
             <h3 style={{ fontWeight: 800, fontSize: '1.25rem', margin: 0 }}>
               {getGreeting()}, {user?.name?.split(' ')[0]}! 👋
             </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '2px 0 0' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '3px 0 0' }}>
               {MONTHS[month - 1]} {year} • <strong style={{ color: 'var(--rm-blue)' }}>{room?.name || 'My Room'}</strong>
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: 'auto' }}>
             <div style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
@@ -183,7 +183,7 @@ const Dashboard = ({ selectedMonth }) => {
               alignItems: 'center',
               gap: 6
             }}>
-              <span style={{ color: 'var(--text-muted)' }}>Room Code:</span>
+              <span style={{ color: 'var(--text-muted)' }}>Code:</span>
               <strong style={{ color: 'var(--rm-blue)', letterSpacing: '0.5px' }}>{room?.code}</strong>
             </div>
 
@@ -195,18 +195,15 @@ const Dashboard = ({ selectedMonth }) => {
                 borderRadius: 10,
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: 'var(--rm-green)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
+                color: 'var(--rm-green)'
               }}>
-                <span>👥 Roommate: {otherRoommate.name?.split(' ')[0]}</span>
+                👥 {otherRoommate.name?.split(' ')[0]}
               </div>
             ) : (
               <button
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm btn-primary"
                 onClick={() => navigate('/members')}
-                style={{ fontSize: '0.72rem', padding: '5px 10px', borderRadius: 10 }}
+                style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: 10, fontWeight: 600 }}
               >
                 + Invite Roommate
               </button>

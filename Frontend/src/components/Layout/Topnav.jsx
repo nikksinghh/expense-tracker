@@ -99,7 +99,7 @@ const Topnav = ({ onMenuClick, selectedMonth, onMonthChange }) => {
       <div className="rm-topnav-right">
         {/* Month Selector */}
         {(pathname === '/dashboard' || pathname === '/reports' || pathname === '/budget') && (
-          <div className="rm-month-select">
+          <div className="rm-month-select rm-topnav-month-select">
             <select
               value={selectedMonth.month}
               onChange={e => onMonthChange({ ...selectedMonth, month: Number(e.target.value) })}

@@ -1190,23 +1190,29 @@ a:hover { color: var(--rm-blue-light); }
   .rm-content { padding-bottom: 85px; }
 }
 
+@media (max-width: 680px) {
+  .rm-topnav-month-select {
+    display: none !important;
+  }
+}
+
 @media (max-width: 576px) {
   .summary-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .summary-card { padding: 14px 12px !important; }
+  .summary-card { padding: 14px 12px !important; border-radius: 14px; }
   .summary-card .card-value { font-size: 1.15rem !important; }
   .summary-card .card-label { font-size: 0.68rem !important; }
   .summary-card .card-sub { font-size: 0.65rem !important; }
-  .rm-content { padding: 10px; }
+  .rm-content { padding: 10px; padding-bottom: 85px; }
   .rm-auth-card { padding: 20px 16px; }
-  .rm-topnav { padding: 0 10px; height: 60px; gap: 8px; }
-  .rm-topnav-left h4 { font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+  .rm-topnav { padding: 0 12px; height: 56px; gap: 10px; }
+  .rm-topnav-left h4 { font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
   .rm-topnav-sub { display: none !important; }
-  .rm-month-select { padding: 4px 6px; font-size: 0.72rem; gap: 2px; }
-  .rm-month-select select { font-size: 0.72rem; }
-  .rm-icon-btn { width: 34px; height: 34px; }
-  .rm-avatar { width: 34px; height: 34px; font-size: 0.8rem; }
+  .rm-topnav-right { gap: 8px; }
+  .rm-icon-btn { width: 36px; height: 36px; }
+  .rm-avatar { width: 36px; height: 36px; font-size: 0.85rem; }
   .rm-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .rm-card { padding: 16px 14px; }
+  .rm-card { padding: 16px 14px; border-radius: 16px; }
+  .rm-greeting-banner { padding: 14px 14px !important; }
 }
 
 /* ---------- Bootstrap Overrides ---------- */
