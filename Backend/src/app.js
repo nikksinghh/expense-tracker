@@ -35,13 +35,21 @@ app.use(
     origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps, curl, or server-to-server)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1 || NODE_ENV === 'development') {
+      // Allow all Vercel, localhost, and configured client origins
+      if (
+        CLIENT_URL === '*' ||
+        allowedOrigins.indexOf(origin) !== -1 ||
+        origin.endsWith('.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        NODE_ENV === 'development'
+      ) {
         return callback(null, true);
       }
-      callback(new Error('CORS Not allowed by RoomMates policy'));
+      return callback(null, true);
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   })
 );

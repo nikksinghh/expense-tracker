@@ -8,11 +8,24 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
+// Request interceptor: attach token from localStorage for cross-domain requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('rm_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Response interceptor: auto-redirect to login on 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      localStorage.removeItem('rm_token');
       const event = new CustomEvent('rm:unauthorized');
       window.dispatchEvent(event);
     }

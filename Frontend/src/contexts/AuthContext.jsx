@@ -9,12 +9,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchMe = useCallback(async () => {
+    const token = localStorage.getItem('rm_token');
+    if (!token) {
+      setUser(null);
+      setRoom(null);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await api.get('/api/auth/me');
       setUser(res.data.user);
       // Always try to fetch room — fetchRoom silently handles 404
       await fetchRoom();
     } catch {
+      localStorage.removeItem('rm_token');
       setUser(null);
       setRoom(null);
     } finally {
@@ -34,13 +42,20 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     fetchMe();
-    const onUnauth = () => { setUser(null); setRoom(null); };
+    const onUnauth = () => {
+      localStorage.removeItem('rm_token');
+      setUser(null);
+      setRoom(null);
+    };
     window.addEventListener('rm:unauthorized', onUnauth);
     return () => window.removeEventListener('rm:unauthorized', onUnauth);
   }, [fetchMe]);
 
   const login = async (email, password) => {
     const res = await api.post('/api/auth/login', { email, password });
+    if (res.data.token) {
+      localStorage.setItem('rm_token', res.data.token);
+    }
     setUser(res.data.user);
     // Always fetch room after login
     await fetchRoom();
@@ -49,12 +64,20 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const res = await api.post('/api/auth/register', data);
+    if (res.data.token) {
+      localStorage.setItem('rm_token', res.data.token);
+    }
     setUser(res.data.user);
     return res.data;
   };
 
   const logout = async () => {
-    await api.post('/api/auth/logout');
+    try {
+      await api.post('/api/auth/logout');
+    } catch {
+      /* silent */
+    }
+    localStorage.removeItem('rm_token');
     setUser(null);
     setRoom(null);
   };
