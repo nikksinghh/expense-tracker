@@ -40,8 +40,9 @@ const App = () => (
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            {/* Temporarily redirected auth routes */}
+            <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
+            <Route path="/reset-password/:token" element={<Navigate to="/login" replace />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>

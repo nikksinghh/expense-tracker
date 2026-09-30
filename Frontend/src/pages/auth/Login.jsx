@@ -52,7 +52,7 @@ const Login = () => {
             />
           </div>
 
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: 20 }}>
             <label className="rm-form-label">Password</label>
             <div style={{ position: 'relative' }}>
               <input
@@ -67,13 +67,6 @@ const Login = () => {
                 {showPw ? <BsEyeSlashFill /> : <BsEyeFill />}
               </button>
             </div>
-          </div>
-
-          {/* Forgot Password */}
-          <div style={{ textAlign: 'right', marginBottom: 20 }}>
-            <Link to="/forgot-password" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--rm-blue)' }}>
-              Forgot password?
-            </Link>
           </div>
 
           <button type="submit" className="btn-rm-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }} id="login-btn" disabled={loading}>
