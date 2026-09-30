@@ -35,11 +35,41 @@ router.post(
   login
 );
 
-router.post('/google', googleLogin);
+router.post(
+  '/google',
+  authLimiter,
+  [
+    body('credential').trim().notEmpty().withMessage('Google credential token is required'),
+    validate
+  ],
+  googleLogin
+);
+
 router.post('/logout', logout);
 router.get('/me', protect, getMe);
-router.post('/forgot-password', forgotPassword);
-router.put('/reset-password/:token', resetPassword);
+
+router.post(
+  '/forgot-password',
+  authLimiter,
+  [
+    body('email').isEmail().withMessage('Please provide a valid registered email address'),
+    validate
+  ],
+  forgotPassword
+);
+
+router.put(
+  '/reset-password/:token',
+  authLimiter,
+  [
+    body('password')
+      .isLength({ min: 6 })
+      .withMessage('New password must be at least 6 characters long'),
+    validate
+  ],
+  resetPassword
+);
+
 router.post('/check-password', checkPasswordStrength);
 
 module.exports = router;

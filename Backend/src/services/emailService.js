@@ -47,11 +47,12 @@ const sendPasswordResetEmail = async (to, name, resetUrl) => {
   const transporter = createTransporter();
 
   if (!transporter) {
-    console.warn('⚠️ [SMTP NOTICE] SMTP credentials not configured in .env. Email sending skipped. Reset URL generated:', resetUrl);
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn('⚠️ [SMTP NOTICE] SMTP credentials not configured in environment. Real email dispatch skipped.');
+    }
     return {
       success: false,
-      message: 'SMTP credentials not configured on server.',
-      resetUrl
+      message: 'SMTP credentials not configured on server.'
     };
   }
 
