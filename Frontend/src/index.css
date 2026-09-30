@@ -1616,16 +1616,49 @@ a:hover { color: var(--rm-blue-light); }
   color: var(--rm-green);
 }
 
+/* Mobile & Desktop Display Utilities */
+.rm-desktop-only { display: block; }
+.rm-mobile-only { display: none; }
+
+.rm-mobile-expense-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.rm-mobile-expense-card:active {
+  transform: scale(0.99);
+}
+
 @media (max-width: 768px) {
+  .rm-desktop-only { display: none !important; }
+  .rm-mobile-only { display: flex !important; }
+
+  /* Compact Footer on Mobile */
   .rm-hyper-footer {
-    padding: 24px 16px 85px;
+    padding: 16px 14px 90px;
+    margin-top: 24px;
   }
   .rm-footer-content {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 12px;
+  }
+  .rm-footer-desc {
+    display: none; /* Hide long paragraph on mobile so footer remains compact */
   }
   .rm-footer-links-group {
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    display: none; /* Keep mobile footer clean and non-cluttered */
+  }
+  .rm-footer-brand-col {
+    gap: 6px;
+    align-items: center;
+    text-align: center;
+  }
+  .rm-footer-bottom {
+    margin-top: 10px;
+    padding-top: 10px;
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
   }
 }
