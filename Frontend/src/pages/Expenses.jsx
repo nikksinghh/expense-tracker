@@ -152,8 +152,14 @@ const Expenses = () => {
             ) : (
               expenses.map(exp => {
                 const meta = getCategoryMeta(exp.category);
-                const isYours = exp.paidBy?._id === user?._id;
-                const myPart = exp.participants?.find(p => p.user?._id === user?._id || p.user === user?._id);
+                // Handle both paidBy and payer field names from the API
+                const payerObj = exp.paidBy || exp.payer;
+                const payerId = payerObj?._id || payerObj;
+                const isYours = payerId?.toString() === user?._id?.toString();
+                const myPart = exp.participants?.find(p => {
+                  const pUserId = p.user?._id || p.user;
+                  return pUserId?.toString() === user?._id?.toString();
+                });
                 return (
                   <tr key={exp._id}>
                     <td>
@@ -173,7 +179,7 @@ const Expenses = () => {
                     </td>
                     <td>
                       <span className={`payer-badge ${!isYours ? 'roommate' : ''}`} style={{ fontSize: '0.72rem' }}>
-                        {isYours ? 'You' : exp.paidBy?.name?.split(' ')[0] || 'Roommate'}
+                        {isYours ? 'You' : payerObj?.name?.split(' ')[0] || 'Roommate'}
                       </span>
                     </td>
                     <td>
@@ -188,22 +194,26 @@ const Expenses = () => {
                     </td>
                     <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{formatDate(exp.date || exp.createdAt)}</td>
                     <td>
-                      {isYours && (
-                        <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {isYours && (
                           <button
                             onClick={() => handleEdit(exp)}
                             style={{ background: 'var(--rm-blue-pale)', border: 'none', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', color: 'var(--rm-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Edit expense"
                           >
                             <BsPencilFill size={12} />
                           </button>
+                        )}
+                        {isYours && (
                           <button
                             onClick={() => handleDelete(exp._id)}
                             style={{ background: 'var(--rm-red-light)', border: 'none', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', color: 'var(--rm-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Delete expense"
                           >
                             <BsTrashFill size={12} />
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

@@ -82,12 +82,22 @@ export const AuthProvider = ({ children }) => {
     setRoom(null);
   };
 
+  const loginWithGoogle = async (googleData) => {
+    const res = await api.post('/api/auth/google', googleData);
+    if (res.data.token) {
+      localStorage.setItem('rm_token', res.data.token);
+    }
+    setUser(res.data.user);
+    await fetchRoom();
+    return res.data;
+  };
+
   const updateUser = (u) => setUser(u);
   const updateRoom = (r) => setRoom(r);
   const refreshRoom = fetchRoom;
 
   return (
-    <AuthContext.Provider value={{ user, room, loading, login, register, logout, updateUser, updateRoom, refreshRoom }}>
+    <AuthContext.Provider value={{ user, room, loading, login, loginWithGoogle, register, logout, updateUser, updateRoom, refreshRoom }}>
       {children}
     </AuthContext.Provider>
   );

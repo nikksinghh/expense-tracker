@@ -6,6 +6,7 @@ import {
 } from 'chart.js';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useMonth } from '../contexts/MonthContext';
 import api from '../api/axios';
 import { formatCurrency, getCategoryMeta, CHART_COLORS } from '../utils/helpers';
 
@@ -13,9 +14,11 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const Reports = ({ selectedMonth }) => {
+const Reports = ({ selectedMonth: selectedMonthProp }) => {
   const { user } = useAuth();
   const toast = useToast();
+  const monthCtx = useMonth();
+  const selectedMonth = selectedMonthProp || monthCtx?.selectedMonth;
 
   const [categoryBreakdown, setCategoryBreakdown] = useState([]);
   const [trend, setTrend] = useState([]);

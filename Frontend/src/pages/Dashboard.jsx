@@ -11,6 +11,7 @@ import {
 } from 'react-icons/bs';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useMonth } from '../contexts/MonthContext';
 import api from '../api/axios';
 import {
   formatCurrency, formatDateShort, getCategoryMeta,
@@ -21,10 +22,12 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const Dashboard = ({ selectedMonth }) => {
+const Dashboard = ({ selectedMonth: selectedMonthProp }) => {
   const { user, room } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const monthCtx = useMonth();
+  const selectedMonth = selectedMonthProp || monthCtx?.selectedMonth;
 
   const [stats, setStats] = useState(null);
   const [recentExpenses, setRecentExpenses] = useState([]);
@@ -36,6 +39,7 @@ const Dashboard = ({ selectedMonth }) => {
 
   const month = selectedMonth?.month || (new Date().getMonth() + 1);
   const year = selectedMonth?.year || new Date().getFullYear();
+
 
   useEffect(() => {
     if (!room) return;

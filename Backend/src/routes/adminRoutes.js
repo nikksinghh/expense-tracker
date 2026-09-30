@@ -1,5 +1,8 @@
 const express = require('express');
-const { getAdminOverview, deleteUser, deleteRoom } = require('../controllers/adminController');
+const {
+  getAdminOverview, getUsers, getRooms, deleteUser, toggleBlockUser,
+  deleteRoom, getRoomDetails, getPlatformStats
+} = require('../controllers/adminController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -18,7 +21,12 @@ router.use(protect);
 router.use(adminOnly);
 
 router.get('/overview', getAdminOverview);
+router.get('/users', getUsers);
+router.get('/rooms', getRooms);
+router.get('/stats', getPlatformStats);
 router.delete('/users/:id', deleteUser);
+router.put('/users/:id/block', toggleBlockUser);
 router.delete('/rooms/:id', deleteRoom);
+router.get('/rooms/:id', getRoomDetails);
 
 module.exports = router;

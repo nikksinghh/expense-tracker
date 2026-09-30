@@ -51,6 +51,27 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['light', 'dark'],
       default: 'light'
+    },
+    isBlocked: {
+      type: Boolean,
+      default: false
+    },
+    googleId: {
+      type: String,
+      default: ''
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local'
+    },
+    passwordResetToken: {
+      type: String,
+      select: false
+    },
+    passwordResetExpires: {
+      type: Date,
+      select: false
     }
   },
   {

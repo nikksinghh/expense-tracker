@@ -65,11 +65,24 @@ const Topnav = ({ onMenuClick, selectedMonth, onMonthChange }) => {
 
   const handleMarkAllRead = async () => {
     try {
-      await api.patch('/api/notifications/read-all');
+      await api.put('/api/notifications/read-all');
       setUnreadCount(0);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       toast('All notifications marked as read', 'success');
     } catch { /* silent */ }
+  };
+
+  const handleOpenNotif = async () => {
+    const isOpening = !showNotif;
+    setShowNotif(s => !s);
+    if (isOpening && unreadCount > 0) {
+      // Auto-mark all as read when opening
+      try {
+        await api.put('/api/notifications/read-all');
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      } catch { /* silent */ }
+    }
   };
 
   const handleLogout = async () => {
@@ -127,7 +140,7 @@ const Topnav = ({ onMenuClick, selectedMonth, onMonthChange }) => {
 
         {/* Notifications */}
         <div style={{ position: 'relative' }} ref={notifRef}>
-          <button className="rm-icon-btn" onClick={() => setShowNotif(s => !s)} id="notif-btn">
+          <button className="rm-icon-btn" onClick={handleOpenNotif} id="notif-btn">
             <BsBellFill size={14} />
             {unreadCount > 0 && <span className="rm-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
           </button>
@@ -147,7 +160,7 @@ const Topnav = ({ onMenuClick, selectedMonth, onMonthChange }) => {
                     No notifications yet
                   </div>
                 ) : notifications.map(n => (
-                  <div key={n._id} className={`rm-notif-item ${!n.read ? 'unread' : ''}`}>
+                  <div key={n._id} className={`rm-notif-item ${!n.isRead ? 'unread' : ''}`}>
                     <h6>{n.title}</h6>
                     <p>{n.message}</p>
                     <div className="notif-time">{new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>

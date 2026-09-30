@@ -94,10 +94,13 @@ const createExpense = async (req, res, next) => {
       });
     }
 
+    const expObj = expense.toObject();
+    expObj.paidBy = expObj.payer; // Alias for frontend compatibility
+
     res.status(201).json({
       success: true,
       message: 'Expense added successfully',
-      expense
+      expense: expObj
     });
   } catch (error) {
     next(error);
@@ -177,13 +180,19 @@ const getExpenses = async (req, res, next) => {
       Expense.countDocuments(query)
     ]);
 
+    const expensesWithAlias = expenses.map(e => {
+      const obj = e.toObject();
+      obj.paidBy = obj.payer;
+      return obj;
+    });
+
     res.status(200).json({
       success: true,
       count: expenses.length,
       total,
       page: pageNum,
       totalPages: Math.ceil(total / limitNum) || 1,
-      expenses
+      expenses: expensesWithAlias
     });
   } catch (error) {
     next(error);

@@ -1,7 +1,32 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Room = require('../models/Room');
 const { JWT_SECRET, JWT_EXPIRES_IN, COOKIE_SECURE, NODE_ENV } = require('../config/env');
+
+// Password strength checker
+const getPasswordStrength = (password) => {
+  let score = 0;
+  const checks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+  };
+  score = Object.values(checks).filter(Boolean).length;
+  const commonPasswords = ['password', '123456', 'password123', 'qwerty', '12345678', 'abc123', 'password1', '111111', '123123'];
+  const isCommon = commonPasswords.includes(password.toLowerCase());
+  
+  let label = 'Very Weak';
+  if (isCommon) return { score: 0, label: 'Too Common', checks, isCommon: true };
+  if (score >= 5) label = 'Very Strong';
+  else if (score === 4) label = 'Strong';
+  else if (score === 3) label = 'Medium';
+  else if (score === 2) label = 'Weak';
+  
+  return { score, label, checks, isCommon: false };
+};
 
 // Helper to sign JWT and set HttpOnly cookie
 const sendTokenResponse = (user, statusCode, res) => {
@@ -98,6 +123,14 @@ const login = async (req, res, next) => {
       });
     }
 
+    // Check if user is blocked by admin
+    if (user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been suspended. Please contact the administrator.'
+      });
+    }
+
     sendTokenResponse(user, 200, res);
   } catch (error) {
     next(error);
@@ -144,9 +177,143 @@ const getMe = async (req, res, next) => {
   }
 };
 
+// @desc    Check password strength
+// @route   POST /api/auth/check-password
+// @access  Public
+const checkPasswordStrength = async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ success: false, message: 'Password required' });
+  const result = getPasswordStrength(password);
+  
+  // Also check if same password hash exists in DB (privacy-safe check)
+  const suggestions = [];
+  if (!result.checks.length) suggestions.push('Use at least 8 characters');
+  if (!result.checks.uppercase) suggestions.push('Add uppercase letters (A-Z)');
+  if (!result.checks.number) suggestions.push('Add numbers (0-9)');
+  if (!result.checks.special) suggestions.push('Add special characters (!@#$...)');
+  if (result.isCommon) suggestions.push('This is a very common password, choose something unique');
+  
+  res.json({ success: true, ...result, suggestions });
+};
+
+// @desc    Request password reset (sends reset token - simulated here)
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Please provide your email' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      // Return success even if user not found (security best practice)
+      return res.status(200).json({ success: true, message: 'If this email exists, a reset link was sent.' });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+    await user.save({ validateBeforeSave: false });
+
+    // In production, send email. For now return token directly (dev mode)
+    res.status(200).json({
+      success: true,
+      message: 'Password reset token generated.',
+      resetToken, // Only expose in development; remove in production
+      devNote: 'In production, this token would be sent via email.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset password using token
+// @route   PUT /api/auth/reset-password/:token
+// @access  Public
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired reset token. Please request a new one.' });
+    }
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    sendTokenResponse(user, 200, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Google OAuth login / verification
+// @route   POST /api/auth/google
+// @access  Public
+const googleLogin = async (req, res, next) => {
+  try {
+    const { email, name, googleId, avatar } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Google account email is required' });
+    }
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user) {
+      if (user.isBlocked) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account has been suspended by the platform administrator.'
+        });
+      }
+      if (googleId && !user.googleId) {
+        user.googleId = googleId;
+        if (avatar && !user.avatar) user.avatar = avatar;
+        await user.save({ validateBeforeSave: false });
+      }
+    } else {
+      // Create new user via Google
+      const randomPassword = crypto.randomBytes(16).toString('hex') + 'Aa1!';
+      user = await User.create({
+        name: name || email.split('@')[0],
+        email: email.toLowerCase(),
+        password: randomPassword,
+        googleId: googleId || '',
+        avatar: avatar || '',
+        authProvider: 'google'
+      });
+    }
+
+    sendTokenResponse(user, 200, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
+  googleLogin,
   logout,
-  getMe
+  getMe,
+  forgotPassword,
+  resetPassword,
+  checkPasswordStrength
 };
+

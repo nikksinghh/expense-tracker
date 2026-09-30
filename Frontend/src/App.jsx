@@ -5,9 +5,13 @@ import { ToastProvider } from './contexts/ToastContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 
-// Pages
+// Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+
+// App Pages
 import RoomSetup from './pages/RoomSetup';
 import Dashboard from './pages/Dashboard';
 import Expenses from './pages/Expenses';
@@ -28,42 +32,25 @@ const App = () => (
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/room-setup" element={<RoomSetup />} />
 
-              <Route path="/" element={
-                <Layout>
-                  {({ selectedMonth }) => <Navigate to="/dashboard" replace />}
-                </Layout>
-              } />
-
-              <Route path="/dashboard" element={
-                <Layout>
-                  {({ selectedMonth }) => <Dashboard selectedMonth={selectedMonth} />}
-                </Layout>
-              } />
-
-              <Route path="/expenses" element={<Layout><Expenses /></Layout>} />
-              <Route path="/add-expense" element={<Layout><AddExpense /></Layout>} />
-              <Route path="/members" element={<Layout><Members /></Layout>} />
-
-              <Route path="/reports" element={
-                <Layout>
-                  {({ selectedMonth }) => <Reports selectedMonth={selectedMonth} />}
-                </Layout>
-              } />
-
-              <Route path="/budget" element={
-                <Layout>
-                  {({ selectedMonth }) => <Budget selectedMonth={selectedMonth} />}
-                </Layout>
-              } />
-
-              <Route path="/settlement" element={<Layout><Settlement /></Layout>} />
-              <Route path="/settings" element={<Layout><Settings /></Layout>} />
-              <Route path="/admin" element={<Layout><Admin /></Layout>} />
+              <Route element={<Layout />}>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/add-expense" element={<AddExpense />} />
+                <Route path="/members" element={<Members />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/budget" element={<Budget />} />
+                <Route path="/settlement" element={<Settlement />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/admin" element={<Admin />} />
+              </Route>
             </Route>
 
             {/* Fallback */}

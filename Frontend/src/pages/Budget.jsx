@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { BsPencilFill, BsWalletFill, BsBellFill } from 'react-icons/bs';
 import { useToast } from '../contexts/ToastContext';
+import { useMonth } from '../contexts/MonthContext';
 import api from '../api/axios';
 import { formatCurrency } from '../utils/helpers';
 
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-const Budget = ({ selectedMonth }) => {
+const Budget = ({ selectedMonth: selectedMonthProp }) => {
   const toast = useToast();
+  const monthCtx = useMonth();
+  const selectedMonth = selectedMonthProp || monthCtx?.selectedMonth;
   const [budget, setBudget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

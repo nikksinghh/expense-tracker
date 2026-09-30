@@ -18,7 +18,25 @@ const Settings = () => {
   const [activeSection, setActiveSection] = useState('profile');
   const [profile, setProfile] = useState({ name: user?.name || '', phone: user?.phone || '', upiId: user?.upiId || '' });
   const [passwords, setPasswords] = useState({ current: '', newPw: '', confirm: '' });
+  const [roomName, setRoomName] = useState(room?.name || '');
   const [saving, setSaving] = useState(false);
+
+  const handleUpdateRoomName = async (e) => {
+    e.preventDefault();
+    if (!roomName.trim()) return toast('Room name cannot be empty', 'warning');
+    setSaving(true);
+    try {
+      const res = await api.put('/api/rooms/update', { name: roomName.trim() });
+      if (res.data.room) {
+        updateRoom(res.data.room);
+      }
+      toast('Room name updated successfully!', 'success');
+    } catch (err) {
+      toast(err.response?.data?.message || 'Failed to update room name', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
@@ -208,21 +226,40 @@ const Settings = () => {
                 <div style={{ background: 'var(--bg-input)', borderRadius: 14, padding: '16px', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                     <div style={{ fontSize: '2rem' }}>🏠</div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: '1rem' }}>{room.name}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{room.members?.length}/2 members</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{room.members?.length || 1} Roommate(s) enrolled</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <div style={{ background: 'var(--rm-blue-pale)', borderRadius: 8, padding: '6px 12px' }}>
                       <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)' }}>INVITE CODE: </span>
                       <span style={{ fontWeight: 800, color: 'var(--rm-blue)', letterSpacing: 1.5 }}>{room.code}</span>
                     </div>
                     <button className="btn-rm-outline" style={{ padding: '6px 12px', fontSize: '0.75rem' }} onClick={() => { navigator.clipboard.writeText(room.code); toast('Code copied!', 'success'); }}>
-                      Copy
+                      📋 Copy Invite Code
                     </button>
                   </div>
                 </div>
+
+                {/* Edit Room Name Form */}
+                <form onSubmit={handleUpdateRoomName} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 14, padding: '16px', marginBottom: 16 }}>
+                  <h6 style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: 12 }}>✏️ Rename Room</h6>
+                  <div style={{ marginBottom: 12 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Room / Flat Name</label>
+                    <input
+                      type="text"
+                      className="form-control-rm"
+                      value={roomName}
+                      onChange={(e) => setRoomName(e.target.value)}
+                      placeholder="e.g. Skyline Flat 402"
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn-rm-primary" disabled={saving} style={{ fontSize: '0.8rem', padding: '8px 16px' }}>
+                    {saving ? 'Saving...' : 'Update Room Name'}
+                  </button>
+                </form>
 
                 <div style={{ background: 'var(--rm-red-light)', borderRadius: 14, padding: '16px', border: '1px solid rgba(239,68,68,0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>

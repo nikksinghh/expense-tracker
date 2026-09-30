@@ -40,10 +40,10 @@ const roomSchema = new mongoose.Schema(
   }
 );
 
-// Enforce max 2 members constraint on save
+// Enforce max 5 members constraint on save
 roomSchema.pre('save', function () {
-  if (this.members && this.members.length > 2) {
-    throw new Error('A room can have at most 2 roommates');
+  if (this.members && this.members.length > 5) {
+    throw new Error('A room can have at most 5 roommates');
   }
 });
 

@@ -99,11 +99,11 @@ const joinRoom = async (req, res, next) => {
       });
     }
 
-    // Enforce strict 2 roommates per room limit!
-    if (room.members.length >= 2) {
+    // Enforce max 5 roommates per room
+    if (room.members.length >= 5) {
       return res.status(400).json({
         success: false,
-        message: 'This room is already full! RoomMates is strictly designed for 2 roommates per room.'
+        message: 'This room is already full! Maximum 5 roommates per room.'
       });
     }
 
