@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 
-// Decode Google JWT Token on client side
-const decodeJwt = (token) => {
+// Safe Client-side JWT Decoder for Google ID Tokens
+const decodeGoogleJwt = (token) => {
   try {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -22,15 +22,16 @@ const decodeJwt = (token) => {
 
 const GoogleAuthButton = ({ text = 'signin_with', isRegister = false }) => {
   const googleBtnRef = useRef(null);
+  const [isConfigured, setIsConfigured] = useState(false);
   const { loginWithGoogle } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
   const handleCredentialResponse = async (response) => {
     if (!response?.credential) return;
-    const payload = decodeJwt(response.credential);
+    const payload = decodeGoogleJwt(response.credential);
     if (!payload || !payload.email) {
-      toast('Failed to read Google account profile', 'error');
+      toast('Failed to parse Google account information.', 'error');
       return;
     }
 
@@ -52,18 +53,26 @@ const GoogleAuthButton = ({ text = 'signin_with', isRegister = false }) => {
         navigate('/room-setup');
       }
     } catch (err) {
-      toast(err.response?.data?.message || 'Google authentication failed', 'error');
+      toast(err.response?.data?.message || 'Google authentication failed. Please try again.', 'error');
     }
   };
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1048293849182-googleclientid.apps.googleusercontent.com';
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const isRealClientId = clientId && clientId.trim() !== '' && !clientId.includes('your_google_client_id') && !clientId.includes('1048293849182-googleclientid');
 
-    const initGoogle = () => {
+    if (!isRealClientId) {
+      setIsConfigured(false);
+      return;
+    }
+
+    setIsConfigured(true);
+
+    const initGoogleGSI = () => {
       if (window.google?.accounts?.id) {
         try {
           window.google.accounts.id.initialize({
-            client_id: clientId,
+            client_id: clientId.trim(),
             callback: handleCredentialResponse,
             auto_select: false,
             cancel_on_tap_outside: true
@@ -82,44 +91,54 @@ const GoogleAuthButton = ({ text = 'signin_with', isRegister = false }) => {
             });
           }
 
-          // Trigger One-Tap prompt for logged in Chrome accounts
+          // Trigger Google One-Tap account chooser for signed-in Chrome users
           window.google.accounts.id.prompt();
         } catch (e) {
-          console.warn('Google GSI init notice:', e);
+          console.warn('Google GSI initialization notice:', e);
         }
       }
     };
 
     if (window.google?.accounts?.id) {
-      initGoogle();
+      initGoogleGSI();
     } else {
       const interval = setInterval(() => {
         if (window.google?.accounts?.id) {
           clearInterval(interval);
-          initGoogle();
+          initGoogleGSI();
         }
       }, 300);
       return () => clearInterval(interval);
     }
   }, [text]);
 
-  const handleCustomClick = () => {
+  const handleManualClick = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const isRealClientId = clientId && clientId.trim() !== '' && !clientId.includes('your_google_client_id') && !clientId.includes('1048293849182-googleclientid');
+
+    if (!isRealClientId) {
+      toast('Google Sign-In setup: Add your VITE_GOOGLE_CLIENT_ID to your environment variables (Vercel / .env).', 'warning');
+      return;
+    }
+
     if (window.google?.accounts?.id) {
       window.google.accounts.id.prompt();
     } else {
-      toast('Google Sign-In SDK is loading...', 'info');
+      toast('Connecting to Google Identity Services...', 'info');
     }
   };
 
   return (
     <div style={{ width: '100%', margin: '12px 0' }}>
-      <div ref={googleBtnRef} style={{ width: '100%', minHeight: 40, display: 'flex', justifyContent: 'center' }}>
-        {/* Fallback button if Google script is blocked or initializing */}
+      {isConfigured ? (
+        <div ref={googleBtnRef} style={{ width: '100%', minHeight: 42, display: 'flex', justifyContent: 'center' }} />
+      ) : (
         <button
           type="button"
           className="btn-rm-outline"
-          onClick={handleCustomClick}
+          onClick={handleManualClick}
           style={{ width: '100%', justifyContent: 'center', padding: '11px', display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', fontWeight: 600 }}
+          id="google-auth-btn"
         >
           <svg width="18" height="18" viewBox="0 0 48 48">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -129,7 +148,7 @@ const GoogleAuthButton = ({ text = 'signin_with', isRegister = false }) => {
           </svg>
           {isRegister ? 'Sign Up with Google' : 'Continue with Google'}
         </button>
-      </div>
+      )}
     </div>
   );
 };

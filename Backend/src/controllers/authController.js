@@ -234,9 +234,7 @@ const forgotPassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'If an account exists with this email address, you will receive password reset instructions shortly.',
-      resetToken, // Available for development/testing
-      resetUrl,
+      message: 'If an account exists with this email address, a password reset link has been dispatched to your inbox. Please check your email and spam folder.',
       emailSent: emailResult.success
     });
   } catch (error) {
