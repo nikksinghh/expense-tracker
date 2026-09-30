@@ -9,7 +9,6 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [demoOtp, setDemoOtp] = useState('');
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -21,10 +20,7 @@ const ForgotPassword = () => {
     setLoading(true);
     try {
       const res = await api.post('/api/auth/forgot-password', { email: email.trim() });
-      toast(res.data.message || 'OTP verification code sent!', 'success');
-      if (res.data.otp) {
-        setDemoOtp(res.data.otp);
-      }
+      toast(res.data.message || 'OTP verification code sent to your email!', 'success');
       setStep(2);
     } catch (err) {
       toast(err.response?.data?.message || 'Failed to request OTP', 'error');
@@ -36,7 +32,7 @@ const ForgotPassword = () => {
   // Step 2: Verify 6-digit OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otp || otp.trim().length !== 6) return toast('Please enter the valid 6-digit OTP', 'warning');
+    if (!otp || otp.trim().length !== 6) return toast('Please enter the valid 6-digit OTP from your email', 'warning');
 
     setLoading(true);
     try {
@@ -62,19 +58,19 @@ const ForgotPassword = () => {
         <div className="rm-auth-logo">
           <div className="logo-circle"><BsHouseFill /></div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 4 }}>
-            {step === 1 ? 'Reset Password' : 'Enter 6-Digit OTP'}
+            {step === 1 ? 'Forgot Password?' : 'Enter 6-Digit Email OTP'}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
             {step === 1
-              ? 'Enter your registered email for OTP verification'
-              : `Enter the 6-digit security code sent to ${email}`}
+              ? 'Enter your registered email to receive a secure OTP code'
+              : `Check your inbox (${email}) for the 6-digit security code`}
           </p>
         </div>
 
         {step === 1 ? (
           <form onSubmit={handleRequestOtp}>
             <div style={{ marginBottom: 20 }}>
-              <label className="rm-form-label">Email address</label>
+              <label className="rm-form-label">Registered Email Address</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type="email"
@@ -97,41 +93,29 @@ const ForgotPassword = () => {
               disabled={loading || !email}
               id="send-otp-btn"
             >
-              {loading ? <span className="spinner" /> : 'Send 6-Digit OTP'}
+              {loading ? <span className="spinner" /> : 'Send 6-Digit Security OTP'}
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp}>
-            {/* Demo/Preview OTP Helper */}
-            {demoOtp && (
-              <div style={{ background: 'var(--rm-blue-pale)', border: '1px solid rgba(29,114,254,0.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, textAlign: 'center' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4 }}>
-                  🔐 Verification OTP Generated:
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: 6, color: 'var(--rm-blue)' }}>
-                  {demoOtp}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setOtp(demoOtp)}
-                  style={{ background: 'none', border: 'none', color: 'var(--rm-blue)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', marginTop: 4 }}
-                >
-                  ⚡ Autofill OTP
-                </button>
+            <div style={{ background: 'var(--rm-blue-pale)', border: '1px solid rgba(29,114,254,0.2)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <BsEnvelopeFill size={20} color="var(--rm-blue)" />
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                We sent a 6-digit code to <strong>{email}</strong>. Please check your inbox / spam folder.
               </div>
-            )}
+            </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label className="rm-form-label">6-Digit Verification Code</label>
+              <label className="rm-form-label">Enter 6-Digit Code</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type="text"
                   maxLength={6}
                   className="rm-input"
-                  placeholder="123456"
+                  placeholder="••••••"
                   value={otp}
                   onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                  style={{ paddingLeft: 40, letterSpacing: 4, fontSize: '1.1rem', fontWeight: 700 }}
+                  style={{ paddingLeft: 40, letterSpacing: 6, fontSize: '1.2rem', fontWeight: 800, textAlign: 'center' }}
                   id="otp-input"
                   required
                 />

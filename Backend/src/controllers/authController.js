@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const Room = require('../models/Room');
 const { JWT_SECRET, JWT_EXPIRES_IN, COOKIE_SECURE, NODE_ENV } = require('../config/env');
+const { sendPasswordResetEmail } = require('../services/emailService');
 
 // Password strength checker
 const getPasswordStrength = (password) => {
@@ -216,13 +217,13 @@ const forgotPassword = async (req, res, next) => {
     user.passwordResetOTP = hashedOtp;
     user.passwordResetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     user.passwordResetAttempts = 0;
-    await user.save({ validateBeforeSave: false });
+    // Send real email with 6-digit OTP
+    const emailResult = await sendPasswordResetEmail(user.email, user.name, rawOtp);
 
-    // Output OTP in response for development / demo verification
     res.status(200).json({
       success: true,
-      message: `A 6-digit verification OTP has been sent for ${email}.`,
-      otp: rawOtp, // Provided for user verification testing
+      message: `A 6-digit verification OTP code has been sent to ${email}. Please check your email inbox.`,
+      emailSent: emailResult.success,
       expiresInMinutes: 10
     });
   } catch (error) {
