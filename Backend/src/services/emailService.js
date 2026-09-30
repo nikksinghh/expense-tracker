@@ -1,110 +1,124 @@
 const nodemailer = require('nodemailer');
 
-// Create email transporter
-const createTransporter = async () => {
-  // If real SMTP settings are in .env, use them
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+/**
+ * Create and configure reusable Nodemailer transporter
+ */
+const createTransporter = () => {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT, 10) || 587;
+  const user = process.env.SMTP_USER || process.env.GMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
     return nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_PORT === '465',
+      service: 'gmail',
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
+      },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 8000
     });
   }
 
-  // Automatic Ethereal fallback for local development & testing
-  try {
-    const testAccount = await nodemailer.createTestAccount();
+  if (host && user && pass) {
     return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-  } catch {
-    // Basic stream transporter if network is offline
-    return nodemailer.createTransport({
-      jsonTransport: true
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 8000
     });
   }
+
+  return null;
 };
 
 /**
- * Send 6-Digit Password Reset OTP Email
+ * Send Password Reset Email with Token & Direct Link
+ * @param {string} to - Recipient email
+ * @param {string} name - Recipient name
+ * @param {string} resetUrl - Complete password reset link URL
  */
-const sendPasswordResetEmail = async (toEmail, userName, otpCode) => {
-  try {
-    const transporter = await createTransporter();
+const sendPasswordResetEmail = async (to, name, resetUrl) => {
+  const transporter = createTransporter();
 
-    const mailOptions = {
-      from: process.env.SMTP_FROM || '"RoomMates Security" <noreply@roommates.app>',
-      to: toEmail,
-      subject: `🔐 Your RoomMates Password Reset Code: ${otpCode}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
-            .container { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-            .header { text-align: center; margin-bottom: 24px; }
-            .logo { font-size: 28px; font-weight: 800; color: #1d72fe; }
-            .title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 12px 0 6px; }
-            .desc { font-size: 14px; color: #64748b; line-height: 1.5; }
-            .otp-box { background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
-            .otp-code { font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #1d4ed8; font-family: monospace; }
-            .warning { font-size: 12px; color: #ef4444; margin-top: 10px; font-weight: 600; }
-            .footer { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="logo">⚡ RoomMates</div>
-              <div class="title">Password Reset Verification</div>
-              <p class="desc">Hello <strong>${userName || 'User'}</strong>, we received a request to reset your password. Use the verification code below:</p>
-            </div>
-
-            <div class="otp-box">
-              <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 6px;">Your 6-Digit OTP</div>
-              <div class="otp-code">${otpCode}</div>
-              <div class="warning">⚠️ This code expires in 10 minutes. Do not share it with anyone.</div>
-            </div>
-
-            <p class="desc" style="font-size: 13px;">If you did not request this password reset, please ignore this email. Your account remains secure.</p>
-
-            <div class="footer">
-              © ${new Date().getFullYear()} RoomMates Inc. 256-Bit Encrypted Security System.
-            </div>
-          </div>
-        </body>
-        </html>
-      `
+  if (!transporter) {
+    console.warn('⚠️ [SMTP NOTICE] SMTP credentials not configured in .env. Email sending skipped. Reset URL generated:', resetUrl);
+    return {
+      success: false,
+      message: 'SMTP credentials not configured on server.',
+      resetUrl
     };
+  }
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`📧 Password Reset OTP Email sent to ${toEmail}. Message ID: ${info.messageId}`);
-    
-    // If ethereal test account, log preview URL
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`🔗 Ethereal Email Preview URL: ${previewUrl}`);
-    }
+  const from = process.env.SMTP_FROM || process.env.GMAIL_USER || 'RoomMates Support <no-reply@roommates.app>';
 
-    return { success: true, messageId: info.messageId, previewUrl };
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fc; margin: 0; padding: 0; color: #1e293b; }
+        .container { max-width: 580px; margin: 30px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+        .header { background: linear-gradient(135deg, #1d72fe, #845ec2); padding: 32px 24px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+        .body { padding: 32px 28px; }
+        .body p { font-size: 15px; line-height: 1.6; margin: 0 0 16px; color: #475569; }
+        .button-wrapper { text-align: center; margin: 30px 0; }
+        .btn { display: inline-block; background: #1d72fe; color: #ffffff !important; padding: 14px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 15px; box-shadow: 0 4px 14px rgba(29,114,254,0.35); }
+        .url-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 12px; word-break: break-all; color: #64748b; font-family: monospace; margin-top: 20px; }
+        .footer { background: #f8fafc; padding: 20px 28px; font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>⚡ RoomMates Password Reset</h1>
+        </div>
+        <div class="body">
+          <p>Hello <strong>${name || 'RoomMate'}</strong>,</p>
+          <p>We received a request to reset your password for your RoomMates expense tracker account.</p>
+          <p>Click the button below to choose a new password. This secure link is valid for <strong>15 minutes</strong>.</p>
+          <div class="button-wrapper">
+            <a href="${resetUrl}" class="btn" target="_blank">Reset Password</a>
+          </div>
+          <p style="font-size: 13px; color: #64748b;">If you did not request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+          <div class="url-box">
+            If the button doesn't work, copy and paste this link into your browser:<br/>
+            ${resetUrl}
+          </div>
+        </div>
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} RoomMates Expense Tracker. Secured with 256-bit encryption.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject: '🔐 RoomMates - Reset Your Password',
+      html,
+      text: `Hello ${name || 'RoomMate'},\n\nReset your password here: ${resetUrl}\n\nThis link expires in 15 minutes.`
+    });
+
+    console.log('✅ Password reset email dispatched to:', to, 'MessageId:', info.messageId);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Failed to send reset email:', error);
-    return { success: false, error: error.message };
+    console.error('❌ Nodemailer Error sending password reset email:', error.message);
+    return { success: false, error: error.message, resetUrl };
   }
 };
 
 module.exports = {
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  createTransporter
 };

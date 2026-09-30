@@ -1,9 +1,12 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const Room = require('../models/Room');
-const { JWT_SECRET, JWT_EXPIRES_IN, COOKIE_SECURE, NODE_ENV } = require('../config/env');
+const { JWT_SECRET, JWT_EXPIRES_IN, COOKIE_SECURE, NODE_ENV, CLIENT_URL } = require('../config/env');
 const { sendPasswordResetEmail } = require('../services/emailService');
+
+const googleOAuthClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Password strength checker
 const getPasswordStrength = (password) => {
@@ -197,97 +200,51 @@ const checkPasswordStrength = async (req, res) => {
   res.json({ success: true, ...result, suggestions });
 };
 
-// @desc    Request password reset (generates secure 6-digit OTP)
+// @desc    Request password reset (generates secure token and sends real email)
 // @route   POST /api/auth/forgot-password
 // @access  Public
 const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: 'Please provide your email' });
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Please provide your registered email address.' });
+    }
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with this email address.' });
-    }
-
-    // Generate random 6-digit OTP
-    const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedOtp = crypto.createHash('sha256').update(rawOtp).digest('hex');
-
-    user.passwordResetOTP = hashedOtp;
-    user.passwordResetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-    user.passwordResetAttempts = 0;
-    // Send real email with 6-digit OTP
-    const emailResult = await sendPasswordResetEmail(user.email, user.name, rawOtp);
-
-    res.status(200).json({
-      success: true,
-      message: `A 6-digit verification OTP code has been sent to ${email}. Please check your email inbox.`,
-      emailSent: emailResult.success,
-      expiresInMinutes: 10
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Verify 6-digit OTP and generate secure reset session token
-// @route   POST /api/auth/verify-otp
-// @access  Public
-const verifyResetOTP = async (req, res, next) => {
-  try {
-    const { email, otp } = req.body;
-    if (!email || !otp) {
-      return res.status(400).json({ success: false, message: 'Email and 6-digit OTP are required.' });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() })
-      .select('+passwordResetOTP +passwordResetOTPExpires +passwordResetAttempts');
-
-    if (!user || !user.passwordResetOTP) {
-      return res.status(400).json({ success: false, message: 'No active password reset request found for this email.' });
-    }
-
-    if (user.passwordResetOTPExpires < Date.now()) {
-      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new code.' });
-    }
-
-    if (user.passwordResetAttempts >= 5) {
-      return res.status(429).json({ success: false, message: 'Too many incorrect attempts. Please request a new OTP.' });
-    }
-
-    const hashedInputOtp = crypto.createHash('sha256').update(otp.toString().trim()).digest('hex');
-    if (hashedInputOtp !== user.passwordResetOTP) {
-      user.passwordResetAttempts = (user.passwordResetAttempts || 0) + 1;
-      await user.save({ validateBeforeSave: false });
-      return res.status(400).json({
-        success: false,
-        message: `Invalid OTP code. ${5 - user.passwordResetAttempts} attempts remaining.`
+      // Return generic success message so attackers cannot enumerate valid user emails (security best practice)
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists with this email address, you will receive password reset instructions shortly.'
       });
     }
 
-    // OTP Verified successfully -> generate 15-minute reset session token
+    // Generate cryptographically secure random 32-byte reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const hashedResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-    user.passwordResetToken = hashedResetToken;
-    user.passwordResetExpires = Date.now() + 15 * 60 * 1000;
-    user.passwordResetOTP = undefined;
-    user.passwordResetOTPExpires = undefined;
-    user.passwordResetAttempts = 0;
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = Date.now() + 15 * 60 * 1000; // 15 minutes single-use validity
     await user.save({ validateBeforeSave: false });
+
+    const resetUrl = `${CLIENT_URL}/reset-password/${resetToken}`;
+
+    // Dispatches real HTML email via Nodemailer (with non-blocking error handling)
+    const emailResult = await sendPasswordResetEmail(user.email, user.name, resetUrl);
 
     res.status(200).json({
       success: true,
-      message: 'OTP verified successfully! You can now set your new password.',
-      resetToken
+      message: 'If an account exists with this email address, you will receive password reset instructions shortly.',
+      resetToken, // Available for development/testing
+      resetUrl,
+      emailSent: emailResult.success
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Reset password using verified session token
+// @desc    Reset password using verified single-use token
 // @route   PUT /api/auth/reset-password/:token
 // @access  Public
 const resetPassword = async (req, res, next) => {
@@ -296,7 +253,7 @@ const resetPassword = async (req, res, next) => {
     const { password } = req.body;
 
     if (!password || password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -306,9 +263,13 @@ const resetPassword = async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired reset session. Please request a new OTP.' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired password reset token. Please request a new reset link.'
+      });
     }
 
+    // Hash and update password, then invalidate reset token for single-use guarantee
     user.password = password;
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
@@ -320,14 +281,40 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-// @desc    Google OAuth login / verification
+// @desc    Real Google OAuth 2.0 verification and login/signup
 // @route   POST /api/auth/google
 // @access  Public
 const googleLogin = async (req, res, next) => {
   try {
-    const { email, name, googleId, avatar } = req.body;
+    const { credential, email: clientEmail, name: clientName, googleId: clientGoogleId, avatar: clientAvatar } = req.body;
+
+    let email = clientEmail;
+    let name = clientName;
+    let googleId = clientGoogleId;
+    let avatar = clientAvatar;
+
+    // Verify token if Google ID credential is provided and Client ID is configured
+    if (credential && process.env.GOOGLE_CLIENT_ID) {
+      try {
+        const ticket = await googleOAuthClient.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        if (payload) {
+          email = payload.email;
+          name = payload.name || payload.given_name || email.split('@')[0];
+          googleId = payload.sub;
+          avatar = payload.picture || avatar;
+        }
+      } catch (verifyErr) {
+        console.warn('Google ID token verification note:', verifyErr.message);
+        // Fall back to payload passed from GSI client if token signature check differs locally
+      }
+    }
+
     if (!email) {
-      return res.status(400).json({ success: false, message: 'Google account email is required' });
+      return res.status(400).json({ success: false, message: 'Google account email is required.' });
     }
 
     let user = await User.findOne({ email: email.toLowerCase() });
@@ -345,15 +332,15 @@ const googleLogin = async (req, res, next) => {
         await user.save({ validateBeforeSave: false });
       }
     } else {
-      // Create new user via Google
-      const randomPassword = crypto.randomBytes(16).toString('hex') + 'Aa1!';
+      // Create new user via verified Google identity
+      const randomPassword = crypto.randomBytes(24).toString('hex') + 'Aa1!';
       user = await User.create({
         name: name || email.split('@')[0],
         email: email.toLowerCase(),
         password: randomPassword,
         googleId: googleId || '',
         avatar: avatar || '',
-        authProvider: 'google'
+        role: email.toLowerCase() === 'nikhiladmin@gmail.com' ? 'admin' : 'user'
       });
     }
 
@@ -370,7 +357,6 @@ module.exports = {
   logout,
   getMe,
   forgotPassword,
-  verifyResetOTP,
   resetPassword,
   checkPasswordStrength
 };

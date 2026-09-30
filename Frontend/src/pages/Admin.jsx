@@ -129,37 +129,28 @@ const Admin = () => {
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
       {/* Admin Header */}
-      <div className="rm-card admin-header-banner" style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%)',
-        color: '#ffffff', padding: '24px 28px', marginBottom: 20,
-        borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
-        boxShadow: '0 8px 30px rgba(15, 23, 42, 0.25)'
+      <div className="rm-card" style={{
+        background: 'linear-gradient(135deg, #0f2057 0%, #1d3a8a 50%, #1d72fe 100%)',
+        color: 'white', padding: '20px 24px', marginBottom: 20,
+        borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '0.62rem', fontWeight: 800, padding: '4px 10px', borderRadius: 6, letterSpacing: '0.8px' }}>MASTER ADMIN</span>
-              <span style={{ fontSize: '0.78rem', color: '#e2e8f0', fontWeight: 600 }}>Superuser Access</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ background: '#EF4444', color: 'white', fontSize: '0.6rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, letterSpacing: '0.5px' }}>MASTER ADMIN</span>
+              <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Superuser Access</span>
             </div>
-            <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.5rem', color: '#ffffff', letterSpacing: '-0.3px' }}>🛡️ Admin Control Center</h2>
-            <p style={{ margin: '6px 0 0', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 500 }}>
-              Welcome <strong style={{ color: '#ffffff' }}>{user?.name}</strong>! You have full system management privileges.
+            <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.4rem' }}>🛡️ Admin Control Center</h2>
+            <p style={{ margin: '4px 0 0', opacity: 0.75, fontSize: '0.82rem' }}>
+              Welcome {user?.name}! Full platform control panel.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button
-              className="btn btn-outline-light"
-              onClick={fetchOverview}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', borderRadius: 10, padding: '8px 14px', color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)', fontWeight: 600 }}
-            >
-              <BsArrowRepeat /> Refresh Stats
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-outline-light" onClick={fetchOverview} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', borderRadius: 10 }}>
+              <BsArrowRepeat /> Refresh
             </button>
-            <button
-              className="btn"
-              onClick={handleExportAll}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', borderRadius: 10, padding: '8px 14px', background: '#3b82f6', color: '#ffffff', border: 'none', fontWeight: 700 }}
-            >
-              <BsDownload /> Export Data
+            <button className="btn btn-primary" onClick={handleExportAll} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', borderRadius: 10 }}>
+              <BsDownload /> Export
             </button>
           </div>
         </div>

@@ -63,19 +63,6 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: {
       type: Date,
       select: false
-    },
-    passwordResetOTP: {
-      type: String,
-      select: false
-    },
-    passwordResetOTPExpires: {
-      type: Date,
-      select: false
-    },
-    passwordResetAttempts: {
-      type: Number,
-      default: 0,
-      select: false
     }
   },
   {

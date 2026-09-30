@@ -114,9 +114,10 @@ const Expenses = () => {
         </div>
       </div>
 
-      {/* Desktop Table View (Hidden on mobile) */}
-      <div className="rm-card rm-desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
-        <table className="rm-table">
+      {/* Table */}
+      <div className="rm-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+          <table className="rm-table" style={{ minWidth: 620 }}>
           <thead>
             <tr>
               <th>Expense</th>
@@ -151,6 +152,7 @@ const Expenses = () => {
             ) : (
               expenses.map(exp => {
                 const meta = getCategoryMeta(exp.category);
+                // Handle both paidBy and payer field names from the API
                 const payerObj = exp.paidBy || exp.payer;
                 const payerId = payerObj?._id || payerObj;
                 const isYours = payerId?.toString() === user?._id?.toString();
@@ -219,108 +221,25 @@ const Expenses = () => {
             )}
           </tbody>
         </table>
-      </div>
+        </div>
 
-      {/* Mobile Responsive Expense Cards View (Visible only on mobile) */}
-      <div className="rm-mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {loading ? (
-          [...Array(4)].map((_, i) => (
-            <div key={i} className="rm-card skeleton" style={{ height: 110, borderRadius: 16 }} />
-          ))
-        ) : expenses.length === 0 ? (
-          <div className="rm-card rm-empty-state" style={{ padding: '30px 16px' }}>
-            <div className="rm-empty-icon">🧾</div>
-            <h5>No expenses found</h5>
-            <p>Tap 'Add Expense' above to get started</p>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderTop: '1px solid var(--divider)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              Page {page} of {totalPages} ({total} results)
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="rm-icon-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                <BsChevronLeft size={13} />
+              </button>
+              <button className="rm-icon-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                <BsChevronRight size={13} />
+              </button>
+            </div>
           </div>
-        ) : (
-          expenses.map(exp => {
-            const meta = getCategoryMeta(exp.category);
-            const payerObj = exp.paidBy || exp.payer;
-            const payerId = payerObj?._id || payerObj;
-            const isYours = payerId?.toString() === user?._id?.toString();
-            const myPart = exp.participants?.find(p => {
-              const pUserId = p.user?._id || p.user;
-              return pUserId?.toString() === user?._id?.toString();
-            });
-            return (
-              <div key={exp._id} className="rm-card rm-mobile-expense-card" style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
-                      {meta.emoji}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {exp.title}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                        {exp.category} • {formatDate(exp.date || exp.createdAt)}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--rm-red)' }}>
-                      {formatCurrency(exp.amount)}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--rm-blue)', fontWeight: 600 }}>
-                      {myPart ? `Your share: ${formatCurrency(myPart.shareAmount)}` : 'Personal'}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--divider)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span className={`payer-badge ${!isYours ? 'roommate' : ''}`} style={{ fontSize: '0.7rem' }}>
-                      Paid by: {isYours ? 'You' : payerObj?.name?.split(' ')[0] || 'Roommate'}
-                    </span>
-                    <span className={`rm-badge-pill ${exp.type === 'shared' ? 'rm-badge-shared' : 'rm-badge-personal'}`} style={{ fontSize: '0.65rem' }}>
-                      {exp.type}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {isYours && (
-                      <>
-                        <button
-                          onClick={() => handleEdit(exp)}
-                          className="btn-rm-outline"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem', gap: 4 }}
-                        >
-                          <BsPencilFill size={11} /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(exp._id)}
-                          style={{ background: 'var(--rm-red-light)', border: 'none', borderRadius: 8, padding: '4px 10px', color: 'var(--rm-red)', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <BsTrashFill size={11} /> Delete
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })
         )}
       </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="rm-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', marginTop: 12 }}>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            Page {page} of {totalPages} ({total} expenses)
-          </span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="rm-icon-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-              <BsChevronLeft size={13} />
-            </button>
-            <button className="rm-icon-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
-              <BsChevronRight size={13} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {showModal && (
         <AddExpenseModal
