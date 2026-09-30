@@ -62,23 +62,27 @@ const ForgotPassword = () => {
         ) : (
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
             <div style={{ fontSize: '3rem', marginBottom: 12 }}>📧</div>
-            <h5 style={{ fontWeight: 700, marginBottom: 8 }}>Check your email</h5>
+            <h5 style={{ fontWeight: 700, marginBottom: 8 }}>Password Reset Requested!</h5>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-              If this email is registered, you'll receive a password reset link shortly.
+              A reset security token has been generated for <strong>{email}</strong>.
             </p>
 
-            {/* DEV MODE: Show token for testing */}
-            {devToken && (
-              <div style={{ background: 'var(--rm-orange-light)', border: '1px solid var(--rm-orange)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, textAlign: 'left' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--rm-orange)', marginBottom: 6 }}>
-                  🛠️ Dev Mode — Reset Token:
+            {devToken ? (
+              <div style={{ background: 'var(--rm-blue-pale)', border: '1px solid rgba(29,114,254,0.3)', borderRadius: 12, padding: '16px', marginBottom: 16, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--rm-blue)', marginBottom: 8 }}>
+                  🔑 Direct Password Reset Link:
                 </div>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.68rem', wordBreak: 'break-all', color: 'var(--text-primary)' }}>
-                  {devToken}
-                </div>
-                <Link to={`/reset-password/${devToken}`} style={{ display: 'inline-block', marginTop: 8, fontSize: '0.78rem', fontWeight: 600 }}>
-                  → Go to Reset Page
+                <Link
+                  to={`/reset-password/${devToken}`}
+                  className="btn-rm-primary"
+                  style={{ display: 'flex', width: '100%', justifyContent: 'center', padding: '10px', textDecoration: 'none' }}
+                >
+                  Click Here to Set New Password →
                 </Link>
+              </div>
+            ) : (
+              <div style={{ background: 'var(--bg-input)', borderRadius: 12, padding: '12px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Please check your inbox or spam folder for the password reset instructions.
               </div>
             )}
           </div>

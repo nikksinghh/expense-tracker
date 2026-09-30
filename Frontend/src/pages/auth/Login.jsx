@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BsHouseFill, BsEyeFill, BsEyeSlashFill, BsArrowRight, BsShieldLockFill } from 'react-icons/bs';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import GoogleAuthButton from '../../components/Auth/GoogleAuthButton';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login, loginWithGoogle } = useAuth();
+  const { login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -80,45 +81,16 @@ const Login = () => {
           </button>
         </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', margin: '18px 0', gap: 10 }}>
           <div style={{ flex: 1, height: 1, background: 'var(--divider)' }} />
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>OR</span>
           <div style={{ flex: 1, height: 1, background: 'var(--divider)' }} />
         </div>
 
-        {/* Google Login Button */}
-        <button
-          type="button"
-          className="btn-rm-outline"
-          style={{ width: '100%', justifyContent: 'center', padding: '11px', display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', fontWeight: 600 }}
-          onClick={async () => {
-            const googleEmail = window.prompt("Enter your Google Account Email for instant login verification:");
-            if (!googleEmail || !googleEmail.trim()) return;
-            try {
-              setLoading(true);
-              const name = googleEmail.split('@')[0].replace(/[._]/g, ' ');
-              const res = await loginWithGoogle({ email: googleEmail.trim(), name });
-              toast('Signed in successfully with Google!', 'success');
-              if (res.user?.role === 'admin') navigate('/admin');
-              else navigate('/dashboard');
-            } catch (err) {
-              toast(err.response?.data?.message || 'Google login failed', 'error');
-            } finally {
-              setLoading(false);
-            }
-          }}
-          id="google-login-btn"
-        >
-          <svg width="18" height="18" viewBox="0 0 48 48">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          Continue with Google
-        </button>
+        {/* Google One-Tap & Sign In */}
+        <GoogleAuthButton text="signin_with" />
 
-        <div style={{ marginTop: 20, textAlign: 'center' }}>
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
             Don't have an account?{' '}
             <Link to="/register" style={{ fontWeight: 700 }}>Create one</Link>

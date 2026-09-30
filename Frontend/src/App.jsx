@@ -22,6 +22,14 @@ import Budget from './pages/Budget';
 import Settlement from './pages/Settlement';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
+import { useAuth } from './contexts/AuthContext';
+
+// Helper component for role-aware root navigation
+const RootRedirect = () => {
+  const { user } = useAuth();
+  if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+  return <Navigate to="/dashboard" replace />;
+};
 
 const App = () => (
   <ThemeProvider>
@@ -40,7 +48,7 @@ const App = () => (
               <Route path="/room-setup" element={<RoomSetup />} />
 
               <Route element={<Layout />}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route index element={<RootRedirect />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/add-expense" element={<AddExpense />} />

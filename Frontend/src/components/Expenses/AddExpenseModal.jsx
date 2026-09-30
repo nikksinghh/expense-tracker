@@ -20,6 +20,7 @@ const AddExpenseModal = ({ expense, onClose }) => {
     title: expense?.title || '',
     amount: expense?.amount || '',
     category: expense?.category || 'Food',
+    payer: expense?.payer?._id || expense?.paidBy?._id || expense?.payer || user?._id || '',
     type: expense?.type || 'shared',
     splitMode: expense?.splitMode || 'equal',
     note: expense?.note || '',
@@ -36,13 +37,16 @@ const AddExpenseModal = ({ expense, onClose }) => {
         const res = await api.get('/api/rooms/current');
         const members = res.data.room?.members || [];
         setRoomates(members);
+        if (!form.payer && members.length > 0) {
+          setForm(f => ({ ...f, payer: user?._id || members[0]._id }));
+        }
         const splits = {};
         members.forEach(m => { splits[m._id] = ''; });
         setCustomSplits(splits);
       } catch { /* silent */ }
     };
     fetchMembers();
-  }, []);
+  }, [user?._id]);
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -106,12 +110,29 @@ const AddExpenseModal = ({ expense, onClose }) => {
               </div>
             </div>
 
-            {/* Category & Date */}
+            {/* Category */}
+            <div style={{ marginBottom: 12 }}>
+              <label className="rm-form-label">Category</label>
+              <select className="rm-select" value={form.category} onChange={e => setField('category', e.target.value)} id="exp-category">
+                {CATEGORIES.map(c => <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>)}
+              </select>
+            </div>
+
+            {/* Paid By & Date */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
-                <label className="rm-form-label">Category</label>
-                <select className="rm-select" value={form.category} onChange={e => setField('category', e.target.value)} id="exp-category">
-                  {CATEGORIES.map(c => <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>)}
+                <label className="rm-form-label">Paid By (Who Paid?) *</label>
+                <select
+                  className="rm-select"
+                  value={form.payer}
+                  onChange={e => setField('payer', e.target.value)}
+                  id="exp-payer"
+                >
+                  {roommates.map(m => (
+                    <option key={m._id} value={m._id}>
+                      {m._id === user?._id ? '👤 You (' + m.name + ')' : '👥 ' + m.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -131,12 +152,14 @@ const AddExpenseModal = ({ expense, onClose }) => {
                     className={`rm-chip ${form.type === t ? 'active' : ''}`}
                     style={{ flex: 1, textAlign: 'center', borderRadius: 10 }}
                   >
-                    {t === 'shared' ? '👥 Shared' : '👤 Personal'}
+                    {t === 'shared' ? '👥 Shared (Split)' : '👤 Personal (Only Me)'}
                   </button>
                 ))}
               </div>
               <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '6px 0 0' }}>
-                {form.type === 'shared' ? 'Split between both roommates' : 'Only affects your expenses, not settlement'}
+                {form.type === 'shared'
+                  ? `Split between all ${roommates.length || 2} roommates in room`
+                  : 'Only counted as your personal expense (not included in settlement)'}
               </p>
             </div>
 
@@ -147,6 +170,12 @@ const AddExpenseModal = ({ expense, onClose }) => {
                 <select className="rm-select" value={form.splitMode} onChange={e => setField('splitMode', e.target.value)} id="exp-split-mode">
                   {SPLIT_MODES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
+
+                {form.splitMode === 'equal' && roommates.length > 0 && amountNum > 0 && (
+                  <div style={{ marginTop: 8, background: 'var(--rm-blue-pale)', borderRadius: 10, padding: '8px 12px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    📊 Each member's share: <strong style={{ color: 'var(--rm-blue)' }}>₹{(amountNum / Math.max(roommates.length, 1)).toFixed(2)}</strong> across {roommates.length} roommates ({roommates.map(m => m._id === user?._id ? 'You' : m.name.split(' ')[0]).join(', ')})
+                  </div>
+                )}
 
                 {form.splitMode !== 'equal' && roommates.length > 0 && (
                   <div style={{ marginTop: 10, background: 'var(--bg-input)', borderRadius: 12, padding: 12 }}>

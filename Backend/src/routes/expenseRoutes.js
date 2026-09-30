@@ -5,7 +5,10 @@ const {
   getExpenses,
   getExpenseById,
   updateExpense,
-  deleteExpense
+  deleteExpense,
+  getExpenseStats,
+  getExpenseTrend,
+  getCategoryBreakdown
 } = require('../controllers/expenseController');
 const { protect, requireRoom } = require('../middleware/auth');
 const validate = require('../middleware/validate');
@@ -14,6 +17,10 @@ const router = express.Router();
 
 router.use(protect);
 router.use(requireRoom);
+
+router.get('/stats', getExpenseStats);
+router.get('/trend', getExpenseTrend);
+router.get('/categories', getCategoryBreakdown);
 
 router
   .route('/')

@@ -42,6 +42,10 @@ const Dashboard = ({ selectedMonth: selectedMonthProp }) => {
 
 
   useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate('/admin', { replace: true });
+      return;
+    }
     if (!room) return;
     const fetchAll = async () => {
       setLoading(true);

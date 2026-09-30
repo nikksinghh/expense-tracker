@@ -328,10 +328,168 @@ const deleteExpense = async (req, res, next) => {
   }
 };
 
+// @desc    Get expense statistics for dashboard & reports
+// @route   GET /api/expenses/stats
+// @access  Private
+const getExpenseStats = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const month = parseInt(req.query.month, 10) || (now.getMonth() + 1);
+    const year = parseInt(req.query.year, 10) || now.getFullYear();
+
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const expenses = await Expense.find({
+      room: req.user.room,
+      date: { $gte: start, $lte: end }
+    }).populate('payer', 'name email avatar upiId');
+
+    const totalAmount = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const count = expenses.length;
+    const currentUserId = req.user._id.toString();
+
+    let yourShare = 0;
+    let roommateShare = 0;
+
+    expenses.forEach(exp => {
+      const isPayer = (exp.payer?._id || exp.payer)?.toString() === currentUserId;
+      if (exp.type === 'personal') {
+        if (isPayer) yourShare += exp.amount;
+        else roommateShare += exp.amount;
+      } else {
+        // Shared expense
+        const myPart = exp.participants?.find(p => (p.user?._id || p.user)?.toString() === currentUserId);
+        if (myPart) {
+          yourShare += (myPart.shareAmount || 0);
+          roommateShare += (exp.amount - (myPart.shareAmount || 0));
+        } else {
+          // Default equal split
+          const split = (exp.amount || 0) / 2;
+          yourShare += split;
+          roommateShare += split;
+        }
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      totalAmount: Math.round(totalAmount * 100) / 100,
+      yourShare: Math.round(yourShare * 100) / 100,
+      roommateShare: Math.round(roommateShare * 100) / 100,
+      count,
+      month,
+      year
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get 6-month historical expense trend
+// @route   GET /api/expenses/trend
+// @access  Private
+const getExpenseTrend = async (req, res, next) => {
+  try {
+    const monthsCount = parseInt(req.query.months, 10) || 6;
+    const now = new Date();
+    const currentUserId = req.user._id.toString();
+    const trend = [];
+
+    for (let i = monthsCount - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const m = d.getMonth() + 1;
+      const y = d.getFullYear();
+      const start = new Date(y, m - 1, 1);
+      const end = new Date(y, m, 0, 23, 59, 59, 999);
+
+      const expenses = await Expense.find({
+        room: req.user.room,
+        date: { $gte: start, $lte: end }
+      });
+
+      let total = 0;
+      let yourShare = 0;
+      let roommateShare = 0;
+
+      expenses.forEach(exp => {
+        total += exp.amount || 0;
+        const isPayer = (exp.payer?._id || exp.payer)?.toString() === currentUserId;
+        if (exp.type === 'personal') {
+          if (isPayer) yourShare += exp.amount;
+          else roommateShare += exp.amount;
+        } else {
+          const myPart = exp.participants?.find(p => (p.user?._id || p.user)?.toString() === currentUserId);
+          if (myPart) {
+            yourShare += (myPart.shareAmount || 0);
+            roommateShare += (exp.amount - (myPart.shareAmount || 0));
+          } else {
+            const split = (exp.amount || 0) / 2;
+            yourShare += split;
+            roommateShare += split;
+          }
+        }
+      });
+
+      trend.push({
+        month: m,
+        year: y,
+        total: Math.round(total * 100) / 100,
+        yourShare: Math.round(yourShare * 100) / 100,
+        roommateShare: Math.round(roommateShare * 100) / 100
+      });
+    }
+
+    res.status(200).json({ success: true, trend });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get expense categories breakdown for month
+// @route   GET /api/expenses/categories
+// @access  Private
+const getCategoryBreakdown = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const month = parseInt(req.query.month, 10) || (now.getMonth() + 1);
+    const year = parseInt(req.query.year, 10) || now.getFullYear();
+
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const expenses = await Expense.find({
+      room: req.user.room,
+      date: { $gte: start, $lte: end }
+    });
+
+    const catMap = {};
+    expenses.forEach(exp => {
+      const cat = exp.category || 'Others';
+      if (!catMap[cat]) catMap[cat] = { category: cat, total: 0, count: 0 };
+      catMap[cat].total += exp.amount || 0;
+      catMap[cat].count += 1;
+    });
+
+    const breakdown = Object.values(catMap).map(c => ({
+      category: c.category,
+      total: Math.round(c.total * 100) / 100,
+      count: c.count
+    })).sort((a, b) => b.total - a.total);
+
+    res.status(200).json({ success: true, breakdown, month, year });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createExpense,
   getExpenses,
   getExpenseById,
   updateExpense,
-  deleteExpense
+  deleteExpense,
+  getExpenseStats,
+  getExpenseTrend,
+  getCategoryBreakdown
 };

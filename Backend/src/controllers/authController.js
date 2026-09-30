@@ -279,7 +279,7 @@ const googleLogin = async (req, res, next) => {
       if (user.isBlocked) {
         return res.status(403).json({
           success: false,
-          message: 'Your account has been suspended by the platform administrator.'
+          message: 'Your account has been suspended by the administrator.'
         });
       }
       if (googleId && !user.googleId) {
