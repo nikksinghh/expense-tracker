@@ -8,8 +8,6 @@ import Layout from './components/Layout/Layout';
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
 
 // App Pages
 import RoomSetup from './pages/RoomSetup';
@@ -40,9 +38,6 @@ const App = () => (
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            {/* Temporarily redirected auth routes */}
-            <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
-            <Route path="/reset-password/:token" element={<Navigate to="/login" replace />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
