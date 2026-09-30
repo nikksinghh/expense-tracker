@@ -20,6 +20,10 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
+// Trust 1st hop reverse proxy (Render / Vercel load balancers)
+// Enables secure extraction of client IP from X-Forwarded-For for express-rate-limit
+app.set('trust proxy', 1);
+
 // Security HTTP headers
 app.use(helmet());
 

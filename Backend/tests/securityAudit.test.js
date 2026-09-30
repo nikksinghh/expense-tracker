@@ -1,8 +1,10 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const app = require('../src/app');
 const User = require('../src/models/User');
+const { sendPasswordResetEmail, sendViaResend, sendViaSmtp } = require('../src/services/emailService');
 
 async function runSecurityAuditTests() {
   console.log('\n🔒 Starting Production Security & Authentication Audit Tests...\n');
@@ -24,6 +26,9 @@ async function runSecurityAuditTests() {
   }
 
   try {
+    // 0. Render Trust Proxy Configuration
+    assert(app.get('trust proxy') === 1, '0. Express trust proxy configured to 1 hop for Render/Vercel reverse proxy');
+
     // 1. User Registration with Bcrypt Password Hashing
     const regRes = await request(app)
       .post('/api/auth/register')
@@ -89,26 +94,50 @@ async function runSecurityAuditTests() {
     const userWithReset = await User.findOne({ email: 'audit@example.com' }).select('+passwordResetToken +passwordResetExpires');
     assert(userWithReset.passwordResetToken && userWithReset.passwordResetExpires > Date.now(), '10. Reset token stored as SHA-256 hash with 15-minute expiry in DB (protected with select: false)');
 
-    // 7. Reset Password with Token & Single-Use Invalidation
-    // Extract actual plain token for test validation
-    // In actual flow, token was sent in email. We test invalid vs valid tokens:
-    const invalidReset = await request(app)
-      .put('/api/auth/reset-password/invalid_token_12345')
-      .send({ password: 'BrandNewPassword456!' });
-    assert(invalidReset.status === 400, '11. Invalid/expired reset token is rejected');
+    // 7. End-to-End Password Reset with Single-Use Verification
+    const rawPlainToken = crypto.randomBytes(32).toString('hex');
+    const hashedAuditToken = crypto.createHash('sha256').update(rawPlainToken).digest('hex');
+    userWithReset.passwordResetToken = hashedAuditToken;
+    userWithReset.passwordResetExpires = Date.now() + 15 * 60 * 1000;
+    await userWithReset.save({ validateBeforeSave: false });
+
+    // Reset password using rawPlainToken
+    const validResetRes = await request(app)
+      .put(`/api/auth/reset-password/${rawPlainToken}`)
+      .send({ password: 'BrandNewStrongPassword789!' });
+    assert(validResetRes.status === 200 && validResetRes.body.token, '11. Valid token resets password and logs user in');
+
+    // Verify single-use: Reusing the same token must fail
+    const reuseResetRes = await request(app)
+      .put(`/api/auth/reset-password/${rawPlainToken}`)
+      .send({ password: 'AnotherPassword999!' });
+    assert(reuseResetRes.status === 400, '12. Single-use enforcement: Token is immediately invalidated after use');
+
+    // Verify new password works and old password is now rejected
+    const oldPwLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'audit@example.com', password: 'SecurePassword123!' });
+    assert(oldPwLogin.status === 401, '13. Old password is now rejected');
+
+    const newPwLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'audit@example.com', password: 'BrandNewStrongPassword789!' });
+    assert(newPwLogin.status === 200 && newPwLogin.body.user.name === 'Audit User', '14. New password logs in successfully');
 
     // 8. Super Admin Route Protection
     const userAdminAttempt = await request(app)
       .get('/api/admin/overview')
-      .set('Authorization', `Bearer ${loginSuccess.body.token}`);
-    assert(userAdminAttempt.status === 403, '12. Non-admin users are strictly blocked from admin routes');
+      .set('Authorization', `Bearer ${newPwLogin.body.token}`);
+    assert(userAdminAttempt.status === 403, '15. Non-admin users are strictly blocked from admin routes');
 
-    // 9. Google Login Verification
+    // 9. Google Login Endpoint Verification
     const fakeGoogleToken = await request(app)
       .post('/api/auth/google')
       .send({ credential: 'totally.invalid.token' });
-    // In test environment or prod, invalid token format is handled safely
-    assert(fakeGoogleToken.status === 200 || fakeGoogleToken.status === 401, '13. Google auth endpoint handles token payloads securely');
+    assert(fakeGoogleToken.status === 200 || fakeGoogleToken.status === 401, '16. Google auth endpoint handles token payloads securely');
+
+    // 10. Email Service Architecture Check
+    assert(typeof sendPasswordResetEmail === 'function' && typeof sendViaResend === 'function' && typeof sendViaSmtp === 'function', '17. Multi-provider email service (Resend HTTP API & SMTP) correctly exported');
 
   } catch (err) {
     console.error('Audit execution error:', err);

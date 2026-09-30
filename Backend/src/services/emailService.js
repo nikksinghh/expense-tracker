@@ -1,7 +1,42 @@
+const { Resend } = require('resend');
 const nodemailer = require('nodemailer');
 
 /**
- * Create and configure reusable Nodemailer transporter
+ * Send email using Resend HTTP API (Port 443 - 100% reliable on Render/Cloud hosting)
+ */
+const sendViaResend = async ({ to, subject, html, text }) => {
+  const apiKey = (process.env.RESEND_API_KEY || '').trim();
+  if (!apiKey) return null;
+
+  try {
+    const resend = new Resend(apiKey);
+    const from = (process.env.RESEND_FROM || process.env.SMTP_FROM || process.env.EMAIL_FROM || 'RoomMates <onboarding@resend.dev>').trim();
+
+    const { data, error } = await resend.emails.send({
+      from,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      text
+    });
+
+    if (error) {
+      console.error('❌ [Resend API Error]:', error.message || error);
+      return { success: false, provider: 'resend', error: error.message || String(error) };
+    }
+
+    if (process.env.NODE_ENV !== 'test') {
+      console.log('✅ [Resend] Password reset email dispatched successfully to:', to, 'ID:', data?.id);
+    }
+    return { success: true, provider: 'resend', id: data?.id };
+  } catch (err) {
+    console.error('❌ [Resend Exception]:', err.message);
+    return { success: false, provider: 'resend', error: err.message };
+  }
+};
+
+/**
+ * Create and configure reusable Nodemailer transporter for SMTP
  */
 const createTransporter = () => {
   const host = process.env.SMTP_HOST;
@@ -16,9 +51,9 @@ const createTransporter = () => {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD
       },
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 8000
+      connectionTimeout: 6000,
+      greetingTimeout: 6000,
+      socketTimeout: 10000
     });
   }
 
@@ -28,9 +63,9 @@ const createTransporter = () => {
       port,
       secure: port === 465,
       auth: { user, pass },
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 8000
+      connectionTimeout: 6000,
+      greetingTimeout: 6000,
+      socketTimeout: 10000
     });
   }
 
@@ -38,26 +73,42 @@ const createTransporter = () => {
 };
 
 /**
+ * Send email using Nodemailer SMTP
+ */
+const sendViaSmtp = async ({ to, subject, html, text }) => {
+  const transporter = createTransporter();
+  if (!transporter) return null;
+
+  const from = (process.env.SMTP_FROM || process.env.GMAIL_USER || 'RoomMates Support <no-reply@roommates.app>').trim();
+
+  try {
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject,
+      html,
+      text
+    });
+
+    if (process.env.NODE_ENV !== 'test') {
+      console.log('✅ [SMTP] Password reset email dispatched to:', to, 'MessageId:', info.messageId);
+    }
+    return { success: true, provider: 'smtp', id: info.messageId };
+  } catch (error) {
+    console.error('❌ [SMTP Error]:', error.message);
+    return { success: false, provider: 'smtp', error: error.message };
+  }
+};
+
+/**
  * Send Password Reset Email with Token & Direct Link
+ * Checks Resend HTTP API first (ideal for Render), then falls back to SMTP.
+ * 
  * @param {string} to - Recipient email
  * @param {string} name - Recipient name
  * @param {string} resetUrl - Complete password reset link URL
  */
 const sendPasswordResetEmail = async (to, name, resetUrl) => {
-  const transporter = createTransporter();
-
-  if (!transporter) {
-    if (process.env.NODE_ENV !== 'test') {
-      console.warn('⚠️ [SMTP NOTICE] SMTP credentials not configured in environment. Real email dispatch skipped.');
-    }
-    return {
-      success: false,
-      message: 'SMTP credentials not configured on server.'
-    };
-  }
-
-  const from = process.env.SMTP_FROM || process.env.GMAIL_USER || 'RoomMates Support <no-reply@roommates.app>';
-
   const html = `
     <!DOCTYPE html>
     <html>
@@ -102,24 +153,36 @@ const sendPasswordResetEmail = async (to, name, resetUrl) => {
     </html>
   `;
 
-  try {
-    const info = await transporter.sendMail({
-      from,
-      to,
-      subject: '🔐 RoomMates - Reset Your Password',
-      html,
-      text: `Hello ${name || 'RoomMate'},\n\nReset your password here: ${resetUrl}\n\nThis link expires in 15 minutes.`
-    });
+  const text = `Hello ${name || 'RoomMate'},\n\nReset your password here: ${resetUrl}\n\nThis link expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`;
+  const subject = '🔐 RoomMates - Reset Your Password';
 
-    console.log('✅ Password reset email dispatched to:', to, 'MessageId:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('❌ Nodemailer Error sending password reset email:', error.message);
-    return { success: false, error: error.message, resetUrl };
+  // 1. Try Resend HTTP API (Outbound HTTPS 443 - zero firewall/port issues on Render)
+  if (process.env.RESEND_API_KEY) {
+    const resendResult = await sendViaResend({ to, subject, html, text });
+    if (resendResult && resendResult.success) {
+      return resendResult;
+    }
   }
+
+  // 2. Try SMTP / Gmail Transporter
+  const smtpResult = await sendViaSmtp({ to, subject, html, text });
+  if (smtpResult) {
+    return smtpResult;
+  }
+
+  if (process.env.NODE_ENV !== 'test') {
+    console.warn('⚠️ [EMAIL NOTICE] No active email provider configured (RESEND_API_KEY or SMTP credentials missing). Real email delivery skipped.');
+  }
+
+  return {
+    success: false,
+    message: 'No email service provider configured on server.'
+  };
 };
 
 module.exports = {
   sendPasswordResetEmail,
+  sendViaResend,
+  sendViaSmtp,
   createTransporter
 };
