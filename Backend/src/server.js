@@ -19,13 +19,24 @@ const startServer = async () => {
           email: adminEmail,
           password: '123456',
           role: 'admin',
+          emailVerified: true,
           phone: '',
           upiId: ''
         });
         console.log('👑 Dedicated Admin account initialized: nikhiladmin@gmail.com / 123456');
-      } else if (existingAdmin.role !== 'admin') {
-        existingAdmin.role = 'admin';
-        await existingAdmin.save();
+      } else {
+        let changed = false;
+        if (existingAdmin.role !== 'admin') {
+          existingAdmin.role = 'admin';
+          changed = true;
+        }
+        if (!existingAdmin.emailVerified) {
+          existingAdmin.emailVerified = true;
+          changed = true;
+        }
+        if (changed) {
+          await existingAdmin.save();
+        }
       }
     } catch (seedErr) {
       console.log('Admin check info:', seedErr.message);

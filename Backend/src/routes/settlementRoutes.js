@@ -7,6 +7,7 @@ const {
   deleteSettlement
 } = require('../controllers/settlementController');
 const { protect, requireRoom } = require('../middleware/auth');
+const { requireIdempotency } = require('../middleware/idempotency');
 const validate = require('../middleware/validate');
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router
   .route('/')
   .get(getSettlementHistory)
   .post(
+    requireIdempotency('RECORD_SETTLEMENT'),
     [
       body('receiver').notEmpty().withMessage('Receiver ID is required'),
       body('amount')

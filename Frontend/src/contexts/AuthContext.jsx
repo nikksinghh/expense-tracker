@@ -9,13 +9,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchMe = useCallback(async () => {
-    const token = localStorage.getItem('rm_token');
-    if (!token) {
-      setUser(null);
-      setRoom(null);
-      setLoading(false);
-      return;
-    }
     try {
       const res = await api.get('/api/auth/me');
       setUser(res.data.user);
@@ -64,10 +57,26 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const res = await api.post('/api/auth/register', data);
+    // If backend provided token (e.g. if already verified in future edge case), store it
     if (res.data.token) {
       localStorage.setItem('rm_token', res.data.token);
+      setUser(res.data.user);
     }
-    setUser(res.data.user);
+    return res.data;
+  };
+
+  const verifyEmail = async (token) => {
+    const res = await api.post('/api/auth/verify-email', { token });
+    return res.data;
+  };
+
+  const verifyOtp = async (email, otp) => {
+    const res = await api.post('/api/auth/verify-otp', { email, otp });
+    return res.data;
+  };
+
+  const resendVerification = async (email) => {
+    const res = await api.post('/api/auth/resend-verification', { email });
     return res.data;
   };
 
@@ -97,7 +106,23 @@ export const AuthProvider = ({ children }) => {
   const refreshRoom = fetchRoom;
 
   return (
-    <AuthContext.Provider value={{ user, room, loading, login, loginWithGoogle, register, logout, updateUser, updateRoom, refreshRoom }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        room,
+        loading,
+        login,
+        loginWithGoogle,
+        register,
+        verifyEmail,
+        verifyOtp,
+        resendVerification,
+        logout,
+        updateUser,
+        updateRoom,
+        refreshRoom
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

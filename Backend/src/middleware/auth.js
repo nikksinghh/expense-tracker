@@ -37,6 +37,25 @@ const protect = async (req, res, next) => {
       });
     }
 
+    // Invalidate session if user's tokenVersion was incremented (e.g. after password reset)
+    if (
+      decoded.tokenVersion !== undefined &&
+      user.tokenVersion !== undefined &&
+      decoded.tokenVersion !== user.tokenVersion
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session has expired or was revoked. Please log in again.'
+      });
+    }
+
+    if (user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been suspended by the administrator.'
+      });
+    }
+
     req.user = user;
     next();
   } catch (error) {

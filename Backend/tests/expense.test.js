@@ -1,25 +1,26 @@
 const request = require('supertest');
 const app = require('../src/app');
+const { createVerifiedUser } = require('./setup');
 
 let user1Token, user2Token;
 let user1Id, user2Id;
 
 beforeEach(async () => {
-  const res1 = await request(app).post('/api/auth/register').send({
+  const u1 = await createVerifiedUser(app, {
     name: 'Nikhil',
     email: 'nikhil@test.com',
     password: 'password123'
   });
-  user1Token = res1.body.token;
-  user1Id = res1.body.user._id;
+  user1Token = u1.token;
+  user1Id = u1.user._id;
 
-  const res2 = await request(app).post('/api/auth/register').send({
+  const u2 = await createVerifiedUser(app, {
     name: 'Aryan',
     email: 'aryan@test.com',
     password: 'password123'
   });
-  user2Token = res2.body.token;
-  user2Id = res2.body.user._id;
+  user2Token = u2.token;
+  user2Id = u2.user._id;
 
   const roomRes = await request(app)
     .post('/api/rooms')
@@ -158,5 +159,37 @@ describe('Expense API & Split Calculations', () => {
       .set('Authorization', `Bearer ${user1Token}`);
 
     expect(getRes.status).toBe(404);
+  });
+
+  it('should prevent duplicate expense creation when Idempotency-Key is reused', async () => {
+    const idempotencyKey = 'test-idemp-key-12345';
+    const payload = {
+      title: 'Electricity Bill',
+      amount: 1500,
+      category: 'Electricity',
+      type: 'shared'
+    };
+
+    // First request
+    const res1 = await request(app)
+      .post('/api/expenses')
+      .set('Authorization', `Bearer ${user1Token}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send(payload);
+
+    expect(res1.status).toBe(201);
+    expect(res1.body.success).toBe(true);
+    const originalExpenseId = res1.body.expense._id;
+
+    // Second request with exact same idempotency key (simulating retry / double tap)
+    const res2 = await request(app)
+      .post('/api/expenses')
+      .set('Authorization', `Bearer ${user1Token}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send(payload);
+
+    expect(res2.status).toBe(201);
+    expect(res2.headers['idempotent-replayed']).toBe('true');
+    expect(res2.body.expense._id).toBe(originalExpenseId);
   });
 });

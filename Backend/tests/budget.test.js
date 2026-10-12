@@ -1,15 +1,16 @@
 const request = require('supertest');
 const app = require('../src/app');
+const { createVerifiedUser } = require('./setup');
 
 let userToken;
 
 beforeEach(async () => {
-  const res = await request(app).post('/api/auth/register').send({
+  const u = await createVerifiedUser(app, {
     name: 'Nikhil',
     email: 'nikhil@test.com',
     password: 'password123'
   });
-  userToken = res.body.token;
+  userToken = u.token;
 
   await request(app)
     .post('/api/rooms')

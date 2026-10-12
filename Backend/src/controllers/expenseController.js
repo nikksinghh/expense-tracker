@@ -47,14 +47,22 @@ const createExpense = async (req, res, next) => {
     }
 
     // Calculate participant shares
-    const computedParticipants = calculateExpenseParticipants({
-      amount: Number(amount),
-      type,
-      splitMode,
-      payerId,
-      roomMemberIds: room.members,
-      customParticipants: participants
-    });
+    let computedParticipants;
+    try {
+      computedParticipants = calculateExpenseParticipants({
+        amount: Number(amount),
+        type,
+        splitMode,
+        payerId,
+        roomMemberIds: room.members,
+        customParticipants: participants
+      });
+    } catch (calcErr) {
+      return res.status(400).json({
+        success: false,
+        message: calcErr.message
+      });
+    }
 
     const expense = await Expense.create({
       room: room._id,

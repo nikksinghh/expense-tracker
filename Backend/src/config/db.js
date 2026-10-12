@@ -18,7 +18,10 @@ const connectDB = async () => {
       console.log('📡 Connecting to MongoDB Atlas / Remote database...');
     }
 
-    const conn = await mongoose.connect(uri);
+    const os = require('os');
+    const conn = await mongoose.connect(uri, {
+      runtimeAdapters: { os }
+    });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     return conn;

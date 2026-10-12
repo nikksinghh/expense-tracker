@@ -1,8 +1,17 @@
 const express = require('express');
 const { body } = require('express-validator');
 const {
-  register, login, googleLogin, logout, getMe,
-  forgotPassword, resetPassword, checkPasswordStrength
+  register,
+  verifyEmail,
+  verifyOtp,
+  resendVerification,
+  login,
+  googleLogin,
+  logout,
+  getMe,
+  forgotPassword,
+  resetPassword,
+  checkPasswordStrength
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const validate = require('../middleware/validate');
@@ -15,7 +24,7 @@ router.post(
   authLimiter,
   [
     body('name').trim().notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('Please provide a valid email'),
+    body('email').isEmail().withMessage('Please provide a valid email address'),
     body('password')
       .isLength({ min: 6 })
       .withMessage('Password must be at least 6 characters long'),
@@ -25,10 +34,41 @@ router.post(
 );
 
 router.post(
+  '/verify-email',
+  authLimiter,
+  [
+    body('token').optional().trim(),
+    validate
+  ],
+  verifyEmail
+);
+
+router.post(
+  '/verify-otp',
+  authLimiter,
+  [
+    body('email').isEmail().withMessage('Please provide a valid email address'),
+    body('otp').trim().isLength({ min: 6, max: 6 }).withMessage('OTP must be exactly 6 digits'),
+    validate
+  ],
+  verifyOtp
+);
+
+router.post(
+  '/resend-verification',
+  authLimiter,
+  [
+    body('email').isEmail().withMessage('Please provide a valid email address'),
+    validate
+  ],
+  resendVerification
+);
+
+router.post(
   '/login',
   authLimiter,
   [
-    body('email').isEmail().withMessage('Please provide a valid email'),
+    body('email').isEmail().withMessage('Please provide a valid email address'),
     body('password').notEmpty().withMessage('Password is required'),
     validate
   ],
@@ -56,6 +96,18 @@ router.post(
     validate
   ],
   forgotPassword
+);
+
+router.post(
+  '/reset-password',
+  authLimiter,
+  [
+    body('password')
+      .isLength({ min: 6 })
+      .withMessage('New password must be at least 6 characters long'),
+    validate
+  ],
+  resetPassword
 );
 
 router.put(

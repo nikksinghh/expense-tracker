@@ -1,13 +1,11 @@
 // Test-specific setup helpers
 // Shared Mongoose connection is managed by tests/dbSetup.js via Jest setupFilesAfterFramework
-// These helpers are kept for backward compatibility
-
 const mongoose = require('mongoose');
+const request = require('supertest');
+const User = require('../src/models/User');
 
-// No-op: connection handled globally in dbSetup.js
 const connectTestDB = async () => {};
 
-// Clear all collections (called in beforeEach if needed manually)
 const clearTestDB = async () => {
   if (mongoose.connection.readyState !== 0) {
     const collections = mongoose.connection.collections;
@@ -17,7 +15,19 @@ const clearTestDB = async () => {
   }
 };
 
-// No-op: connection handled globally in dbSetup.js
 const closeTestDB = async () => {};
 
-module.exports = { connectTestDB, clearTestDB, closeTestDB };
+const createVerifiedUser = async (app, userData) => {
+  await request(app).post('/api/auth/register').send(userData);
+  await User.updateOne({ email: userData.email.toLowerCase() }, { emailVerified: true });
+  const loginRes = await request(app).post('/api/auth/login').send({
+    email: userData.email,
+    password: userData.password
+  });
+  return {
+    user: loginRes.body.user,
+    token: loginRes.body.token
+  };
+};
+
+module.exports = { connectTestDB, clearTestDB, closeTestDB, createVerifiedUser };

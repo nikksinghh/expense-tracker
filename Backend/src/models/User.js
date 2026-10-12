@@ -56,6 +56,45 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    emailVerified: {
+      type: Boolean,
+      default: false
+    },
+    emailVerificationToken: {
+      type: String,
+      select: false
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false
+    },
+    emailVerificationOtp: {
+      type: String,
+      select: false
+    },
+    emailVerificationOtpExpires: {
+      type: Date,
+      select: false
+    },
+    otpAttempts: {
+      type: Number,
+      default: 0,
+      select: false
+    },
+    otpLockoutUntil: {
+      type: Date,
+      default: null,
+      select: false
+    },
+    lastResendTimestamp: {
+      type: Date,
+      default: null,
+      select: false
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0
+    },
     passwordResetToken: {
       type: String,
       select: false
@@ -88,6 +127,13 @@ userSchema.methods.toJSON = function () {
   delete obj.password;
   delete obj.passwordResetToken;
   delete obj.passwordResetExpires;
+  delete obj.emailVerificationToken;
+  delete obj.emailVerificationExpires;
+  delete obj.emailVerificationOtp;
+  delete obj.emailVerificationOtpExpires;
+  delete obj.otpAttempts;
+  delete obj.otpLockoutUntil;
+  delete obj.lastResendTimestamp;
   return obj;
 };
 

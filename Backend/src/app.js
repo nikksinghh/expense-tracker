@@ -33,29 +33,44 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000'
-];
+].filter(Boolean);
+
+const isOriginAllowed = (origin) => {
+  // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  // In development/test mode, allow localhost and 127.0.0.1 on any port
+  if (NODE_ENV === 'development' || NODE_ENV === 'test') {
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return true;
+    }
+  }
+
+  // Allow verified Vercel preview/production deployments
+  try {
+    const url = new URL(origin);
+    if (url.hostname.endsWith('.vercel.app')) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+};
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, curl, or server-to-server)
-      if (!origin) return callback(null, true);
-      // Allow all Vercel, localhost, and configured client origins
-      if (
-        CLIENT_URL === '*' ||
-        allowedOrigins.indexOf(origin) !== -1 ||
-        origin.endsWith('.vercel.app') ||
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1') ||
-        NODE_ENV === 'development'
-      ) {
+      if (isOriginAllowed(origin)) {
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Idempotency-Key']
   })
 );
 
