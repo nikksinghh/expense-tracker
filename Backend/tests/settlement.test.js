@@ -1,25 +1,26 @@
 const request = require('supertest');
 const app = require('../src/app');
+const { createVerifiedUser } = require('./setup');
 
 let user1Token, user2Token;
 let user1Id, user2Id;
 
 beforeEach(async () => {
-  const res1 = await request(app).post('/api/auth/register').send({
+  const u1 = await createVerifiedUser(app, {
     name: 'Nikhil',
     email: 'nikhil@test.com',
     password: 'password123'
   });
-  user1Token = res1.body.token;
-  user1Id = res1.body.user._id;
+  user1Token = u1.token;
+  user1Id = u1.user._id;
 
-  const res2 = await request(app).post('/api/auth/register').send({
+  const u2 = await createVerifiedUser(app, {
     name: 'Aryan',
     email: 'aryan@test.com',
     password: 'password123'
   });
-  user2Token = res2.body.token;
-  user2Id = res2.body.user._id;
+  user2Token = u2.token;
+  user2Id = u2.user._id;
 
   const roomRes = await request(app)
     .post('/api/rooms')
@@ -121,5 +122,36 @@ describe('Settlement API & Personal/Shared Separation', () => {
 
     expect(res.body.calculation.relationship).toBe('settled');
     expect(res.body.calculation.netAmount).toBe(0);
+  });
+
+  it('should prevent duplicate settlement recording when Idempotency-Key is reused', async () => {
+    const idempotencyKey = 'test-settle-idemp-999';
+    const payload = {
+      receiver: user1Id,
+      amount: 400,
+      paymentMethod: 'UPI',
+      referenceNote: 'UPI Settlement'
+    };
+
+    const res1 = await request(app)
+      .post('/api/settlements')
+      .set('Authorization', `Bearer ${user2Token}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send(payload);
+
+    expect(res1.status).toBe(201);
+    expect(res1.body.success).toBe(true);
+    const originalSettlementId = res1.body.settlement._id;
+
+    // Retry with identical key
+    const res2 = await request(app)
+      .post('/api/settlements')
+      .set('Authorization', `Bearer ${user2Token}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send(payload);
+
+    expect(res2.status).toBe(201);
+    expect(res2.headers['idempotent-replayed']).toBe('true');
+    expect(res2.body.settlement._id).toBe(originalSettlementId);
   });
 });

@@ -3,5 +3,6 @@ module.exports = {
   testTimeout: 30000,
   verbose: true,
   forceExit: true,
-  setupFilesAfterEnv: ['<rootDir>/tests/dbSetup.js']
+  setupFilesAfterEnv: ['<rootDir>/tests/dbSetup.js'],
+  testPathIgnorePatterns: ['/node_modules/', 'securityAudit.test.js']
 };

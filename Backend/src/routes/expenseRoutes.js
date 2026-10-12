@@ -11,6 +11,7 @@ const {
   getCategoryBreakdown
 } = require('../controllers/expenseController');
 const { protect, requireRoom } = require('../middleware/auth');
+const { requireIdempotency } = require('../middleware/idempotency');
 const validate = require('../middleware/validate');
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.get('/categories', getCategoryBreakdown);
 router
   .route('/')
   .post(
+    requireIdempotency('CREATE_EXPENSE'),
     [
       body('title').trim().notEmpty().withMessage('Expense title is required'),
       body('amount')

@@ -6,6 +6,11 @@ const errorHandler = (err, req, res, next) => {
     console.error('⚠️ Central Error Handler:', err);
   }
 
+  // CORS error
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ success: false, message: 'CORS policy violation: origin not allowed.' });
+  }
+
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
     const message = `Resource not found with id of ${err.value}`;

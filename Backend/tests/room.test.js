@@ -1,29 +1,30 @@
 const request = require('supertest');
 const app = require('../src/app');
+const { createVerifiedUser } = require('./setup');
 
 let user1Token, user2Token, user3Token;
 
 beforeEach(async () => {
-  const res1 = await request(app).post('/api/auth/register').send({
+  const u1 = await createVerifiedUser(app, {
     name: 'Roommate One',
     email: 'user1@test.com',
     password: 'password123'
   });
-  user1Token = res1.body.token;
+  user1Token = u1.token;
 
-  const res2 = await request(app).post('/api/auth/register').send({
+  const u2 = await createVerifiedUser(app, {
     name: 'Roommate Two',
     email: 'user2@test.com',
     password: 'password123'
   });
-  user2Token = res2.body.token;
+  user2Token = u2.token;
 
-  const res3 = await request(app).post('/api/auth/register').send({
+  const u3 = await createVerifiedUser(app, {
     name: 'Roommate Three',
     email: 'user3@test.com',
     password: 'password123'
   });
-  user3Token = res3.body.token;
+  user3Token = u3.token;
 });
 
 describe('Room System API', () => {
