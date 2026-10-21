@@ -19,7 +19,9 @@ beforeAll(async () => {
   if (mongoose.connection.readyState === 0) {
     const os = require('os');
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 15000,
+      family: 4,
+      directConnection: true,
       runtimeAdapters: { os }
     });
   }
@@ -37,10 +39,10 @@ beforeEach(async () => {
 
 // Clean up after tests finish
 afterAll(async () => {
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.connection.close();
+  }
   if (mongod) {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.connection.close();
-    }
     await mongod.stop();
   }
 }, 15000);

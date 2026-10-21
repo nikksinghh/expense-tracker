@@ -4,11 +4,13 @@ import { BsHouseFill, BsEyeFill, BsEyeSlashFill, BsArrowRight, BsShieldLockFill 
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import GoogleAuthButton from '../../components/Auth/GoogleAuthButton';
+import ErrorAlert from '../../components/Common/ErrorAlert';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const { login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ const Login = () => {
     e.preventDefault();
     if (!form.email || !form.password) return toast('Please fill all fields', 'warning');
     setLoading(true);
+    setError(null);
     try {
       const res = await login(form.email, form.password);
       if (res.user?.role === 'admin') {
@@ -25,7 +28,16 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      toast(err.response?.data?.message || 'Login failed. Check credentials.', 'error', 'Login Failed');
+      const errData = err.response?.data;
+      const isUnverified = errData?.code === 'EMAIL_NOT_VERIFIED';
+      const msg = errData?.message || 'Login failed. Please check your credentials.';
+
+      setError({
+        message: msg,
+        code: errData?.code,
+        isUnverified
+      });
+      toast(msg, isUnverified ? 'warning' : 'error', isUnverified ? 'Verification Required' : 'Login Failed');
     } finally {
       setLoading(false);
     }
@@ -40,6 +52,19 @@ const Login = () => {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Sign in to your RoomMates account</p>
         </div>
 
+        {/* Actionable Error Section */}
+        <ErrorAlert
+          error={error}
+          type={error?.isUnverified ? 'warning' : 'error'}
+          onClear={() => setError(null)}
+          actionText={error?.isUnverified ? 'Verify Email Now' : undefined}
+          onAction={() => {
+            if (error?.isUnverified) {
+              navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
+            }
+          }}
+        />
+
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
             <label className="rm-form-label">Email address</label>
@@ -47,19 +72,27 @@ const Login = () => {
               type="email" className="rm-input"
               placeholder="you@example.com"
               value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              onChange={e => { setForm(f => ({ ...f, email: e.target.value })); if (error) setError(null); }}
               id="login-email" autoComplete="email"
             />
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <label className="rm-form-label">Password</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <label className="rm-form-label" style={{ margin: 0 }}>Password</label>
+              <Link
+                to="/forgot-password"
+                style={{ fontSize: '0.76rem', color: 'var(--rm-blue)', fontWeight: 600, textDecoration: 'none' }}
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div style={{ position: 'relative' }}>
               <input
                 type={showPw ? 'text' : 'password'} className="rm-input"
                 placeholder="••••••••"
                 value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                onChange={e => { setForm(f => ({ ...f, password: e.target.value })); if (error) setError(null); }}
                 id="login-password" autoComplete="current-password"
                 style={{ paddingRight: 42 }}
               />

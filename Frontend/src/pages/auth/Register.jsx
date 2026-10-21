@@ -4,6 +4,7 @@ import { BsHouseFill, BsEyeFill, BsEyeSlashFill, BsArrowRight, BsCheckLg, BsXLg 
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import GoogleAuthButton from '../../components/Auth/GoogleAuthButton';
+import ErrorAlert from '../../components/Common/ErrorAlert';
 import api from '../../api/axios';
 
 const PasswordStrength = ({ password }) => {
@@ -57,6 +58,7 @@ const Register = () => {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', upiId: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const { register } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -66,12 +68,15 @@ const Register = () => {
     if (!form.name || !form.email || !form.password) return toast('Name, email, and password are required', 'warning');
     if (form.password.length < 6) return toast('Password must be at least 6 characters', 'warning');
     setLoading(true);
+    setError(null);
     try {
       await register(form);
-      toast('Account created successfully! 🎉', 'success', 'Welcome!');
-      navigate('/room-setup');
+      toast('Account created! Please verify your email.', 'success', 'Verification Sent');
+      navigate(`/verify-email?email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
     } catch (err) {
-      toast(err.response?.data?.message || 'Registration failed', 'error', 'Error');
+      const msg = err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(msg);
+      toast(msg, 'error', 'Error');
     } finally {
       setLoading(false);
     }
@@ -85,6 +90,14 @@ const Register = () => {
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 4 }}>Create account</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Start tracking shared expenses today</p>
         </div>
+
+        {/* Actionable Error Section */}
+        <ErrorAlert
+          error={error}
+          onClear={() => setError(null)}
+          actionText={error?.toLowerCase().includes('already') ? 'Sign In Instead' : undefined}
+          onAction={() => navigate('/login')}
+        />
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>

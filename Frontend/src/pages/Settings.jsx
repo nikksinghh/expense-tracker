@@ -10,7 +10,7 @@ import { useToast } from '../contexts/ToastContext';
 import api from '../api/axios';
 
 const Settings = () => {
-  const { user, room, updateUser, logout } = useAuth();
+  const { user, room, updateUser, updateRoom, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const toast = useToast();
   const navigate = useNavigate();

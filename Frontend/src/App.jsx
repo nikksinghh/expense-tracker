@@ -8,6 +8,10 @@ import Layout from './components/Layout/Layout';
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import VerifyEmail from './pages/auth/VerifyEmail';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+import ErrorBoundary from './components/Common/ErrorBoundary';
 
 // App Pages
 import RoomSetup from './pages/RoomSetup';
@@ -30,14 +34,19 @@ const RootRedirect = () => {
 };
 
 const App = () => (
-  <ThemeProvider>
-    <AuthProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+  <ErrorBoundary>
+    <ThemeProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
@@ -64,6 +73,7 @@ const App = () => (
       </ToastProvider>
     </AuthProvider>
   </ThemeProvider>
+</ErrorBoundary>
 );
 
 export default App;

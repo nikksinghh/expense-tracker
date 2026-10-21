@@ -20,14 +20,25 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: auto-redirect to login on 401
+// Response interceptor: auto-redirect to login on 401 for authenticated session expiry
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('rm_token');
-      const event = new CustomEvent('rm:unauthorized');
-      window.dispatchEvent(event);
+      const url = error.config?.url || '';
+      // Don't trigger global logout when on auth pages attempting credentials or reset
+      const isAuthAttempt =
+        url.includes('/api/auth/login') ||
+        url.includes('/api/auth/register') ||
+        url.includes('/api/auth/verify') ||
+        url.includes('/api/auth/forgot-password') ||
+        url.includes('/api/auth/reset-password');
+
+      if (!isAuthAttempt) {
+        localStorage.removeItem('rm_token');
+        const event = new CustomEvent('rm:unauthorized');
+        window.dispatchEvent(event);
+      }
     }
     return Promise.reject(error);
   }
